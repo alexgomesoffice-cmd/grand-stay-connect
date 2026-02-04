@@ -72,7 +72,7 @@ const FeaturedHotels = () => {
             <div
               key={hotel.id}
               onClick={() => handleCardClick(hotel.id)}
-              className={`group relative rounded-2xl overflow-hidden bg-card border border-border hover:border-primary/30 transition-all duration-500 hover-lift cursor-pointer ${
+              className={`group relative rounded-2xl overflow-hidden bg-card border border-border hover:border-primary/30 transition-all duration-500 cursor-pointer hover:scale-[1.02] hover:-translate-y-3 ${
                 isVisible ? "animate-fade-in-up" : "opacity-0"
               }`}
               style={{ animationDelay: `${(index + 2) * 100}ms` }}
@@ -82,26 +82,29 @@ const FeaturedHotels = () => {
                 <img
                   src={hotel.image}
                   alt={hotel.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-105"
                 />
+                
+                {/* Animated shine overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 
                 {/* Like Button */}
                 <button
                   onClick={(e) => toggleLike(e, hotel.id)}
-                  className="absolute top-4 right-4 p-2.5 rounded-full glass transition-all duration-300 hover:scale-110"
+                  className="absolute top-4 right-4 p-2.5 rounded-full glass transition-all duration-300 hover:scale-125 active:scale-95"
                 >
                   <Heart
-                    className={`h-5 w-5 transition-colors ${
+                    className={`h-5 w-5 transition-all duration-300 ${
                       likedHotels.includes(hotel.id)
-                        ? "fill-destructive text-destructive"
-                        : "text-foreground"
+                        ? "fill-destructive text-destructive scale-110"
+                        : "text-foreground hover:text-destructive"
                     }`}
                   />
                 </button>
 
                 {/* Rating Badge */}
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 backdrop-blur-sm">
-                  <Star className="h-4 w-4 fill-primary-foreground text-primary-foreground" />
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 backdrop-blur-sm group-hover:scale-105 transition-transform">
+                  <Star className="h-4 w-4 fill-primary-foreground text-primary-foreground animate-pulse" />
                   <span className="text-sm font-semibold text-primary-foreground">
                     {hotel.rating}
                   </span>
@@ -109,10 +112,11 @@ const FeaturedHotels = () => {
 
                 {/* Tags */}
                 <div className="absolute bottom-4 left-4 flex gap-2">
-                  {hotel.tags.map((tag) => (
+                  {hotel.tags.map((tag, tagIndex) => (
                     <span
                       key={tag}
-                      className="text-xs px-2.5 py-1 rounded-full glass font-medium"
+                      className="text-xs px-2.5 py-1 rounded-full glass font-medium transition-all duration-300 hover:bg-primary/20 hover:scale-105"
+                      style={{ transitionDelay: `${tagIndex * 50}ms` }}
                     >
                       {tag}
                     </span>
@@ -126,7 +130,7 @@ const FeaturedHotels = () => {
                   {hotel.name}
                 </h3>
                 <div className="flex items-center gap-1.5 text-muted-foreground mb-4">
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-4 w-4 group-hover:text-primary transition-colors" />
                   <span className="text-sm">{hotel.location}</span>
                 </div>
                 <div className="flex items-end justify-between">
@@ -134,21 +138,22 @@ const FeaturedHotels = () => {
                     <span className="text-2xl font-bold text-gradient">${hotel.price}</span>
                     <span className="text-sm text-muted-foreground">/night</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                     {hotel.reviews.toLocaleString()} reviews
                   </span>
                 </div>
               </div>
 
               {/* View Details Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Button variant="hero" size="lg">
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
+                <Button variant="hero" size="lg" className="scale-90 group-hover:scale-100 transition-transform duration-300 shadow-xl">
                   View Details
                 </Button>
               </div>
 
-              {/* Hover overlay */}
-              <div className="absolute inset-0 border-2 border-transparent group-hover:border-primary/20 rounded-2xl transition-colors pointer-events-none" />
+              {/* Hover border glow */}
+              <div className="absolute inset-0 border-2 border-transparent group-hover:border-primary/30 rounded-2xl transition-colors pointer-events-none" />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gradient-to-t from-primary/5 via-transparent to-transparent rounded-2xl" />
             </div>
           ))}
         </div>

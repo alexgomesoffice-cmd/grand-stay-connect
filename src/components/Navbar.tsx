@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Hotel, User } from "lucide-react";
+import { Menu, X, Hotel, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { useTheme } from "@/hooks/use-theme";
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-
+  const { theme, toggleTheme } = useTheme();
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -71,11 +71,27 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" size="sm">
+          <div className="hidden md:flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="relative p-2.5 rounded-xl glass transition-all duration-300 hover:scale-110 hover:bg-primary/10 group"
+              aria-label="Toggle theme"
+            >
+              <Sun className={cn(
+                "h-5 w-5 transition-all duration-500 absolute",
+                theme === "dark" ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-0 opacity-0"
+              )} />
+              <Moon className={cn(
+                "h-5 w-5 transition-all duration-500",
+                theme === "light" ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
+              )} />
+              <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+            <Button variant="ghost" size="sm" className="hover:scale-105 transition-transform">
               Log in
             </Button>
-            <Button variant="hero" size="default">
+            <Button variant="hero" size="default" className="animate-pulse-glow">
               Sign up
             </Button>
           </div>
@@ -119,6 +135,14 @@ const Navbar = () => {
             </Link>
           ))}
           <div className="pt-4 border-t border-border flex gap-3">
+            {/* Mobile Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl glass transition-all duration-300"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
             <Button variant="ghost" size="sm" className="flex-1">
               Log in
             </Button>

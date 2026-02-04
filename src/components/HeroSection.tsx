@@ -15,16 +15,16 @@ const HeroSection = () => {
         {collageImages.map((image, index) => (
           <div
             key={index}
-            className="relative overflow-hidden animate-fade-in"
+            className="relative overflow-hidden animate-fade-in group"
             style={{ animationDelay: `${index * 150}ms` }}
           >
             <img
               src={image}
               alt={`Collage image ${index + 1}`}
-              className="w-full h-full object-cover scale-105 hover:scale-110 transition-transform duration-700"
+              className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700"
             />
             {/* Individual image overlay for depth */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-background/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-background/30 to-transparent group-hover:from-background/40 transition-colors duration-500" />
           </div>
         ))}
       </div>
@@ -36,16 +36,30 @@ const HeroSection = () => {
       {/* Animated decorative elements */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float opacity-30" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-float opacity-20" style={{ animationDelay: "1.5s" }} />
+      
+      {/* Floating sparkles */}
+      {[...Array(8)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-1 h-1 bg-primary rounded-full animate-float opacity-60"
+          style={{
+            left: `${10 + i * 12}%`,
+            top: `${15 + (i % 4) * 18}%`,
+            animationDelay: `${i * 0.3}s`,
+            animationDuration: `${2.5 + i * 0.3}s`,
+          }}
+        />
+      ))}
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-20">
         <div className="text-center mb-12">
           {/* Badge */}
           <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 animate-fade-in-down"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 animate-fade-in-down group cursor-pointer hover:bg-card/90 transition-all duration-300"
           >
             <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
               Over 1,480,086 rooms worldwide
             </span>
           </div>
@@ -55,8 +69,8 @@ const HeroSection = () => {
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-in-up"
             style={{ animationDelay: "100ms" }}
           >
-            <span className="block">Book your stay with</span>
-            <span className="text-gradient">StayVista</span>
+            <span className="block hover:tracking-wide transition-all duration-500">Book your stay with</span>
+            <span className="text-gradient animate-gradient bg-[length:200%_auto]">StayVista</span>
           </h1>
 
           {/* Subheading */}
@@ -83,17 +97,17 @@ const HeroSection = () => {
             { value: "50K+", label: "Hotels" },
             { value: "4.9", label: "App Rating" },
           ].map((stat, index) => (
-            <div key={index} className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-gradient">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
+            <div key={index} className="text-center group cursor-pointer">
+              <div className="text-2xl sm:text-3xl font-bold text-gradient group-hover:scale-110 transition-transform duration-300">{stat.value}</div>
+              <div className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{stat.label}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-        <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer hover:scale-110 transition-transform">
+        <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2 hover:border-primary/50 transition-colors">
           <div className="w-1.5 h-3 bg-primary rounded-full animate-pulse" />
         </div>
       </div>
