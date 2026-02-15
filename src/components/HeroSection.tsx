@@ -37,19 +37,7 @@ const HeroSection = () => {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float opacity-30" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-float opacity-20" style={{ animationDelay: "1.5s" }} />
       
-      {/* Floating sparkles */}
-      {[...Array(8)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-1 h-1 bg-primary rounded-full animate-float opacity-60"
-          style={{
-            left: `${10 + i * 12}%`,
-            top: `${15 + (i % 4) * 18}%`,
-            animationDelay: `${i * 0.3}s`,
-            animationDuration: `${2.5 + i * 0.3}s`,
-          }}
-        />
-      ))}
+      {/* Subtle light particles */}
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-20">
@@ -105,12 +93,6 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer hover:scale-110 transition-transform">
-        <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2 hover:border-primary/50 transition-colors">
-          <div className="w-1.5 h-3 bg-primary rounded-full animate-pulse" />
-        </div>
-      </div>
     </section>
   );
 };

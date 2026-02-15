@@ -11,9 +11,9 @@ const SearchBar = () => {
 
   return (
     <div className="w-full max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: "400ms" }}>
-      <div className="glass rounded-2xl p-3 sm:p-4 shadow-2xl shadow-primary/10 hover:shadow-primary/20 transition-shadow duration-500 group/bar">
+      <div className="relative glass rounded-2xl p-4 sm:p-6 shadow-2xl shadow-primary/10 hover:shadow-primary/20 transition-all duration-500 group/bar border border-primary/10 hover:border-primary/30">
         {/* Animated border glow */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-0 group-hover/bar:opacity-100 blur-xl transition-opacity duration-500 -z-10" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 opacity-0 group-hover/bar:opacity-100 blur-xl transition-opacity duration-500 -z-10" />
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* Location */}
