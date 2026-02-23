@@ -3,14 +3,13 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import {
   Hotel, LayoutDashboard, BedDouble, Calendar, DollarSign,
   MessageSquare, Settings, LogOut, Menu, X, Bell,
-  ChevronDown, Building2,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/manager" },
-  { icon: Building2, label: "Hotels", path: "/manager/hotels" },
   { icon: BedDouble, label: "Rooms", path: "/manager/rooms" },
   { icon: Calendar, label: "Reservations", path: "/manager/reservations" },
   { icon: DollarSign, label: "Revenue", path: "/manager/revenue" },

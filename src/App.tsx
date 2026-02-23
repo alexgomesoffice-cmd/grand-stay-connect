@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import Index from "./pages/Index";
-import AdminDashboard from "./pages/AdminDashboard";
 import HotelDetail from "./pages/HotelDetail";
 import Destinations from "./pages/Destinations";
 import Popular from "./pages/Popular";
@@ -14,11 +13,25 @@ import Attractions from "./pages/Attractions";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
+
+// Admin
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboardHome from "./pages/admin/AdminDashboardHome";
+import AdminAddHotel from "./pages/admin/AdminAddHotel";
+import AdminCurrentHotels from "./pages/admin/AdminCurrentHotels";
+import AdminUpdateHotel from "./pages/admin/AdminUpdateHotel";
+import AdminEraseHotel from "./pages/admin/AdminEraseHotel";
+import AdminClientList from "./pages/admin/AdminClientList";
+import AdminUpdateClient from "./pages/admin/AdminUpdateClient";
+import AdminEraseClient from "./pages/admin/AdminEraseClient";
+import AdminBookings from "./pages/admin/AdminBookings";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSettings from "./pages/admin/AdminSettings";
+
+// Manager
 import ManagerLayout from "./components/manager/ManagerLayout";
 import ManagerOverview from "./pages/manager/ManagerOverview";
-import ManagerHotels from "./pages/manager/ManagerHotels";
 import ManagerRooms from "./pages/manager/ManagerRooms";
-import ManagerAddHotel from "./pages/manager/ManagerAddHotel";
 import ManagerAddRoom from "./pages/manager/ManagerAddRoom";
 import ManagerReservations from "./pages/manager/ManagerReservations";
 import ManagerRevenue from "./pages/manager/ManagerRevenue";
@@ -43,19 +56,33 @@ const App = () => (
             <Route path="/attractions" element={<Attractions />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboardHome />} />
+              <Route path="add-hotel" element={<AdminAddHotel />} />
+              <Route path="hotels" element={<AdminCurrentHotels />} />
+              <Route path="update-hotel" element={<AdminUpdateHotel />} />
+              <Route path="erase-hotel" element={<AdminEraseHotel />} />
+              <Route path="clients" element={<AdminClientList />} />
+              <Route path="update-client" element={<AdminUpdateClient />} />
+              <Route path="erase-client" element={<AdminEraseClient />} />
+              <Route path="bookings" element={<AdminBookings />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
+
+            {/* Manager Routes */}
             <Route path="/manager" element={<ManagerLayout />}>
               <Route index element={<ManagerOverview />} />
-              <Route path="hotels" element={<ManagerHotels />} />
               <Route path="rooms" element={<ManagerRooms />} />
-              <Route path="add-hotel" element={<ManagerAddHotel />} />
               <Route path="add-room" element={<ManagerAddRoom />} />
               <Route path="reservations" element={<ManagerReservations />} />
               <Route path="revenue" element={<ManagerRevenue />} />
               <Route path="reviews" element={<ManagerReviews />} />
               <Route path="settings" element={<ManagerSettings />} />
             </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   Hotel,
@@ -13,19 +13,54 @@ import {
   Bell,
   Search,
   ChevronDown,
+  ChevronRight,
+  Plus,
+  List,
+  Edit,
+  Trash2,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface AdminLayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-const sidebarItems = [
+interface SidebarDropdown {
+  label: string;
+  icon: React.ElementType;
+  items: { label: string; path: string; icon: React.ElementType }[];
+}
+
+const sidebarDropdowns: SidebarDropdown[] = [
+  {
+    label: "Hotel Client Management",
+    icon: Hotel,
+    items: [
+      { label: "Add New Hotel", path: "/admin/add-hotel", icon: Plus },
+      { label: "Current Hotels", path: "/admin/hotels", icon: List },
+      { label: "Update Hotels Info", path: "/admin/update-hotel", icon: Edit },
+      { label: "Erase Hotel Info", path: "/admin/erase-hotel", icon: Trash2 },
+    ],
+  },
+  {
+    label: "Consumer Client Management",
+    icon: Users,
+    items: [
+      { label: "Client List", path: "/admin/clients", icon: UserCheck },
+      { label: "Update Client Info", path: "/admin/update-client", icon: Edit },
+      { label: "Erase Client Info", path: "/admin/erase-client", icon: Trash2 },
+    ],
+  },
+];
+
+const sidebarStatic = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
-  { icon: Hotel, label: "Properties", path: "/admin/properties" },
-  { icon: Users, label: "Guests", path: "/admin/guests" },
+];
+
+const sidebarBottom = [
   { icon: Calendar, label: "Bookings", path: "/admin/bookings" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
   { icon: Settings, label: "Settings", path: "/admin/settings" },
@@ -34,11 +69,41 @@ const sidebarItems = [
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({
+    "Hotel Client Management": true,
+    "Consumer Client Management": false,
+  });
   const location = useLocation();
+
+  const toggleDropdown = (label: string) => {
+    setOpenDropdowns((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const renderNavLink = (item: { icon: React.ElementType; label: string; path: string }, nested = false) => {
+    const active = isActive(item.path);
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        onClick={() => setIsMobileSidebarOpen(false)}
+        className={cn(
+          "flex items-center gap-3 rounded-xl transition-all duration-300",
+          nested ? "px-3 py-2 text-sm" : "px-4 py-3",
+          active
+            ? "bg-primary/10 text-primary border border-primary/20"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+        )}
+      >
+        <item.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+        {isSidebarOpen && <span className="font-medium">{item.label}</span>}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile Overlay */}
       {isMobileSidebarOpen && (
         <div
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
@@ -49,7 +114,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 h-full bg-card border-r border-border z-50 transition-all duration-300",
+          "fixed left-0 top-0 h-full bg-card border-r border-border z-50 transition-all duration-300 overflow-y-auto",
           isSidebarOpen ? "w-64" : "w-20",
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
@@ -75,31 +140,57 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
-          {sidebarItems.map((item) => {
-            const isActive = location.pathname === item.path;
+        <nav className="p-4 space-y-1">
+          {/* Dashboard link */}
+          {sidebarStatic.map((item) => renderNavLink(item))}
+
+          {/* Dropdown sections */}
+          {sidebarDropdowns.map((dropdown) => {
+            const isOpen = openDropdowns[dropdown.label];
+            const hasActiveChild = dropdown.items.some((item) => isActive(item.path));
+
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
-                  isActive
-                    ? "bg-primary/10 text-primary border border-primary/20"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              <div key={dropdown.label} className="pt-2">
+                <button
+                  onClick={() => isSidebarOpen && toggleDropdown(dropdown.label)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 w-full rounded-xl transition-all duration-300 text-left",
+                    hasActiveChild
+                      ? "text-primary bg-primary/5"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  <dropdown.icon className={cn("h-5 w-5 shrink-0", hasActiveChild && "text-primary")} />
+                  {isSidebarOpen && (
+                    <>
+                      <span className="font-medium text-sm flex-1">{dropdown.label}</span>
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
+                      )}
+                    </>
+                  )}
+                </button>
+
+                {isSidebarOpen && isOpen && (
+                  <div className="ml-4 pl-4 border-l border-border/50 space-y-1 mt-1 animate-fade-in">
+                    {dropdown.items.map((item) => renderNavLink(item, true))}
+                  </div>
                 )}
-              >
-                <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
-                {isSidebarOpen && (
-                  <span className="font-medium animate-fade-in-left">{item.label}</span>
-                )}
-              </Link>
+              </div>
             );
           })}
+
+          {/* Divider */}
+          <div className="border-t border-border/50 my-3" />
+
+          {/* Bottom static links */}
+          {sidebarBottom.map((item) => renderNavLink(item))}
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card">
           <button
             className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
           >
@@ -119,7 +210,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         {/* Top Header */}
         <header className="h-20 border-b border-border glass-strong sticky top-0 z-30">
           <div className="h-full px-4 sm:px-6 flex items-center justify-between gap-4">
-            {/* Left side */}
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsMobileSidebarOpen(true)}
@@ -142,7 +232,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               </div>
             </div>
 
-            {/* Right side */}
             <div className="flex items-center gap-3">
               <button className="relative p-2.5 hover:bg-secondary rounded-xl transition-colors">
                 <Bell className="h-5 w-5" />
@@ -154,7 +243,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">Hotel Manager</p>
+                  <p className="text-xs text-muted-foreground">Administrator</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </div>
@@ -163,7 +252,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8">
+          {children || <Outlet />}
+        </main>
       </div>
     </div>
   );

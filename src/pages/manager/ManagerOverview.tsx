@@ -55,9 +55,6 @@ const ManagerOverview = () => {
           <Button variant="hero" asChild>
             <Link to="/manager/add-room"><Plus className="h-4 w-4 mr-2" /> Add Room</Link>
           </Button>
-          <Button variant="hero" asChild>
-            <Link to="/manager/add-hotel"><Plus className="h-4 w-4 mr-2" /> Add Hotel</Link>
-          </Button>
         </div>
       </div>
 
