@@ -1,17 +1,9 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  BedDouble, DollarSign, TrendingUp, TrendingDown, Star, Users, Plus,
+  BedDouble, DollarSign, TrendingUp, TrendingDown, Star, Users, Plus, UserPlus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const hotels = [
-  { id: "1", name: "Grand Palace Hotel" },
-  { id: "2", name: "Seaside Resort" },
-  { id: "3", name: "Mountain Lodge" },
-];
 
 const stats = [
   { title: "Occupancy Rate", value: "87%", change: "+3.2%", trend: "up", icon: BedDouble, color: "from-primary to-accent" },
@@ -28,30 +20,17 @@ const todayReservations = [
 ];
 
 const HotelAdminOverview = () => {
-  const [selectedHotel, setSelectedHotel] = useState(hotels[0].id);
-
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in-up">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Good morning, Maria 👋</h1>
           <p className="text-muted-foreground">Here's your hotel overview for today.</p>
-          {/* Hotel Selector */}
-          <div className="mt-3 w-64">
-            <Select value={selectedHotel} onValueChange={setSelectedHotel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select hotel" />
-              </SelectTrigger>
-              <SelectContent>
-                {hotels.map((h) => (
-                  <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
         <div className="flex gap-3">
+          <Button variant="outline" asChild>
+            <Link to="/hotel-admin/add-sub-admin"><UserPlus className="h-4 w-4 mr-2" /> Add Hotel Sub Admin</Link>
+          </Button>
           <Button variant="hero" asChild>
             <Link to="/hotel-admin/add-room"><Plus className="h-4 w-4 mr-2" /> Add Room</Link>
           </Button>
@@ -84,9 +63,7 @@ const HotelAdminOverview = () => {
 
       {/* Today's Reservations */}
       <Card className="animate-fade-in-up" style={{ animationDelay: "500ms" }}>
-        <CardHeader>
-          <CardTitle>Today's Activity</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Today's Activity</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -107,9 +84,7 @@ const HotelAdminOverview = () => {
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                         r.status === "arriving" ? "bg-green-500/10 text-green-500" : "bg-amber-500/10 text-amber-500"
-                      }`}>
-                        {r.status}
-                      </span>
+                      }`}>{r.status}</span>
                     </td>
                   </tr>
                 ))}

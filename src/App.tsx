@@ -38,6 +38,9 @@ import HotelAdminOverview from "./pages/hotel-admin/HotelAdminOverview";
 import HotelAdminRooms from "./pages/hotel-admin/HotelAdminRooms";
 import HotelAdminAddRoom from "./pages/hotel-admin/HotelAdminAddRoom";
 import HotelAdminReservations from "./pages/hotel-admin/HotelAdminReservations";
+import HotelAdminReservationDetail from "./pages/hotel-admin/HotelAdminReservationDetail";
+import HotelAdminAddSubAdmin from "./pages/hotel-admin/HotelAdminAddSubAdmin";
+import HotelAdminGuestProfile from "./pages/hotel-admin/HotelAdminGuestProfile";
 import HotelAdminRevenue from "./pages/hotel-admin/HotelAdminRevenue";
 import HotelAdminReviews from "./pages/hotel-admin/HotelAdminReviews";
 import HotelAdminSettings from "./pages/hotel-admin/HotelAdminSettings";
@@ -87,7 +90,10 @@ const App = () => (
               <Route index element={<HotelAdminOverview />} />
               <Route path="rooms" element={<HotelAdminRooms />} />
               <Route path="add-room" element={<HotelAdminAddRoom />} />
+              <Route path="add-sub-admin" element={<HotelAdminAddSubAdmin />} />
               <Route path="reservations" element={<HotelAdminReservations />} />
+              <Route path="reservations/:id" element={<HotelAdminReservationDetail />} />
+              <Route path="guest/:id" element={<HotelAdminGuestProfile />} />
               <Route path="revenue" element={<HotelAdminRevenue />} />
               <Route path="reviews" element={<HotelAdminReviews />} />
               <Route path="settings" element={<HotelAdminSettings />} />
