@@ -1,31 +1,33 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Label } from "../../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { Checkbox } from "../../components/ui/checkbox";
-import { toast } from "../../hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "@/hooks/use-toast";
 
 const amenitiesList = ["WiFi", "TV", "Mini Bar", "Air Conditioning", "Safe", "Balcony", "Ocean View", "Room Service"];
 
 const HotelAdminAddRoom = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: "", type: "", price: "", capacity: "", beds: "", size: "", description: "" });
+  const [formData, setFormData] = useState({ roomNumber: "", type: "", bedType: "", price: "", capacity: "", size: "", description: "" });
   const [amenities, setAmenities] = useState<string[]>([]);
+  const [smokingAllowed, setSmokingAllowed] = useState(false);
+  const [petsAllowed, setPetsAllowed] = useState(false);
 
   const toggleAmenity = (a: string) => setAmenities((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!formData.name || !formData.type || !formData.price) {
+    if (!formData.roomNumber || !formData.type || !formData.price) {
       toast({ title: "Missing fields", description: "Please fill in the required fields.", variant: "destructive" });
       return;
     }
-    toast({ title: "Room Added!", description: `${formData.name} has been added successfully.` });
+    toast({ title: "Room Added!", description: `Room ${formData.roomNumber} has been added successfully.` });
     navigate("/hotel-admin/rooms");
   };
 
@@ -47,12 +49,12 @@ const HotelAdminAddRoom = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Room Name / Number *</Label>
-                <Input placeholder="e.g. Suite 301" value={formData.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })} />
+                <Label>Room Number *</Label>
+                <Input placeholder="e.g. 301" value={formData.roomNumber} onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Room Type *</Label>
-                <Select value={formData.type} onValueChange={(v: string) => setFormData({ ...formData, type: v })}>
+                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
                   <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="standard">Standard</SelectItem>
@@ -63,23 +65,48 @@ const HotelAdminAddRoom = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Price per Night *</Label>
-                <Input type="number" placeholder="0" value={formData.price} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, price: e.target.value })} />
+                <Label>Bed Type *</Label>
+                <Select value={formData.bedType} onValueChange={(v) => setFormData({ ...formData, bedType: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select bed type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Single</SelectItem>
+                    <SelectItem value="double">Double</SelectItem>
+                    <SelectItem value="queen">Queen</SelectItem>
+                    <SelectItem value="king">King</SelectItem>
+                    <SelectItem value="twin">Twin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Max Guests</Label>
-                <Input type="number" placeholder="2" value={formData.capacity} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, capacity: e.target.value })} />
+                <Label>Price per Night *</Label>
+                <Input type="number" placeholder="0" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Max Occupancy</Label>
+                <Input type="number" placeholder="2" value={formData.capacity} onChange={(e) => setFormData({ ...formData, capacity: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Size (m²)</Label>
-                <Input type="number" placeholder="30" value={formData.size} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, size: e.target.value })} />
+                <Input type="number" placeholder="30" value={formData.size} onChange={(e) => setFormData({ ...formData, size: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea placeholder="Describe this room..." value={formData.description} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })} />
+              <Textarea placeholder="Describe this room..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-6 pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={smokingAllowed} onCheckedChange={(v) => setSmokingAllowed(!!v)} />
+                <span className="text-sm font-medium">Smoking Allowed?</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={petsAllowed} onCheckedChange={(v) => setPetsAllowed(!!v)} />
+                <span className="text-sm font-medium">Pets Allowed?</span>
+              </label>
             </div>
           </CardContent>
         </Card>
