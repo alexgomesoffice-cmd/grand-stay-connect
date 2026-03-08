@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { ProtectedRoute } from "@/utils/ProtectedRoute";
 import Index from "./pages/Index";
 import HotelDetail from "./pages/HotelDetail";
 import Destinations from "./pages/Destinations";
@@ -78,7 +79,7 @@ const App = () => (
             <Route path="/my-bookings" element={<MyBookings />} />
             <Route path="/user-settings" element={<UserSettings />} />
 
-            <Route path="/admin" element={<AdminLayout />}>
+            <Route path="/admin" element={<ProtectedRoute element={<AdminLayout />} requiredRole="SYSTEM_ADMIN" />}>
               <Route index element={<AdminDashboardHome />} />
               <Route path="add-hotel" element={<AdminAddHotel />} />
               <Route path="add-system-admin" element={<AdminAddSystemAdmin />} />
@@ -98,7 +99,7 @@ const App = () => (
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 
-            <Route path="/hotel-admin" element={<HotelAdminLayout />}>
+            <Route path="/hotel-admin" element={<ProtectedRoute element={<HotelAdminLayout />} requiredRole="HOTEL_ADMIN" />}>
               <Route index element={<HotelAdminOverview />} />
               <Route path="rooms" element={<HotelAdminRooms />} />
               <Route path="add-room" element={<HotelAdminAddRoom />} />
