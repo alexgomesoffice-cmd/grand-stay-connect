@@ -16,6 +16,15 @@ const AdminEraseClient = () => {
   const [clients, setClients] = useState<EndUserResponse[]>([]);
   const [search, setSearch] = useState("");
   const [eraseTarget, setEraseTarget] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("authToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -42,12 +51,38 @@ const AdminEraseClient = () => {
   const handleDelete = async () => {
     if (!eraseTarget) return;
     
-    // Note: Backend endpoint for deleting client would be needed
-    toast({
-      title: "Info",
-      description: "Delete client feature requires backend API endpoint (DELETE /api/end-users/:id)",
-    });
-    setEraseTarget(null);
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/end-users/${eraseTarget}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete client");
+      }
+
+      const deletedClient = clients.find((c) => c.end_user_id === eraseTarget);
+      setClients(clients.filter((c) => c.end_user_id !== eraseTarget));
+
+      toast({
+        title: "Client Erased Successfully",
+        description: `${deletedClient?.name || "Client"} has been permanently removed.`,
+      });
+
+      setEraseTarget(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete client",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const filteredClients = clients.filter(
@@ -118,7 +153,7 @@ const AdminEraseClient = () => {
         onOpenChange={(open) => !open && setEraseTarget(null)}
         title="Erase this client?"
         description={`Are you sure you want to permanently erase ${targetClient?.name || "this client"} and remove all their bookings? This action cannot be undone.`}
-        confirmLabel="Yes, Erase Permanently"
+        confirmLabel={isDeleting ? "Erasing..." : "Yes, Erase Permanently"}
         onConfirm={handleDelete}
         variant="destructive"
       />

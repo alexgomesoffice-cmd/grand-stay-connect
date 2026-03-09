@@ -1,26 +1,83 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminAddSystemAdmin = () => {
   const navigate = useNavigate();
-  const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast();
-
-  const handleSubmit = () => {
-    toast({
-      title: "Feature Not Implemented",
-      description: "System admin creation requires backend API endpoint (POST /api/system-admins)",
-      variant: "destructive",
-    });
-  };
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
 
   useEffect(() => {
     setIsLoaded(true);
   }, []);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("authToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name || !formData.email || !formData.password) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/system-admin/create", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to create system admin");
+      }
+
+      toast({
+        title: "System Admin Created Successfully",
+        description: `${formData.name} has been created as a system admin.`,
+      });
+
+      navigate("/admin");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create system admin",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -34,32 +91,53 @@ const AdminAddSystemAdmin = () => {
         </div>
       </div>
 
-      <Card className={`${isLoaded ? "animate-fade-in-up" : "opacity-0"}`} style={{ animationDelay: "100ms" }}>
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <AlertCircle className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-amber-900 mb-2">Feature Requires Backend API</h3>
-              <p className="text-sm text-amber-800 mb-4">
-                System admin creation requires the following backend endpoint:
-              </p>
-              <code className="block bg-amber-100 rounded p-2 text-xs font-mono text-amber-900">
-                POST /api/system-admins
-              </code>
-              <p className="text-sm text-amber-800 mt-4">
-                Please set up the system admin creation endpoint in your backend before using this feature.
-              </p>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card className={`${isLoaded ? "animate-fade-in-up" : "opacity-0"}`} style={{ animationDelay: "100ms" }}>
+          <CardHeader>
+            <CardTitle>Admin Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Admin Name *</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Full name of the admin"
+              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={() => navigate("/admin")}>Go Back</Button>
-        <Button type="button" variant="hero" disabled onClick={handleSubmit}>
-          Create System Admin (Disabled)
-        </Button>
-      </div>
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="admin@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Password *</Label>
+              <Input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Secure password"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" onClick={() => navigate("/admin")}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="hero" disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" />
+            {isSubmitting ? "Creating..." : "Create System Admin"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

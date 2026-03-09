@@ -20,9 +20,18 @@ const AdminUpdateClient = () => {
   const { toast } = useToast();
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [client, setClient] = useState<EndUserResponse | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [blocked, setBlocked] = useState(false);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("authToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -86,22 +95,84 @@ const AdminUpdateClient = () => {
     );
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
-    // Note: Backend endpoint for updating client would be needed
-    toast({
-      title: "Info",
-      description: "Client update feature requires backend API endpoint (PUT /api/end-users/:id)",
-    });
+
+    if (!formData.name) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in the client name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/end-users/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: formData.name,
+          is_blocked: blocked,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update client");
+      }
+
+      toast({
+        title: "Client Updated Successfully",
+        description: `${formData.name} has been updated.`,
+      });
+
+      navigate("/admin/clients");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update client",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const toggleBlock = (checked: boolean) => {
-    // Note: Backend endpoint for blocking client would be needed
-    toast({
-      title: "Info",
-      description: "Block/unblock feature requires backend API endpoint",
-    });
+  const toggleBlock = async (checked: boolean) => {
+    setBlocked(!checked);
+    
+    try {
+      const response = await fetch(`/api/end-users/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: formData.name,
+          is_blocked: !checked,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update client status");
+      }
+
+      toast({
+        title: "Client Status Updated",
+        description: !checked ? "Client has been blocked." : "Client has been unblocked.",
+      });
+    } catch (error) {
+      setBlocked(checked);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update client status",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -153,8 +224,8 @@ const AdminUpdateClient = () => {
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={() => navigate("/admin/clients")}>Cancel</Button>
-          <Button type="submit" variant="hero" disabled>
-            <Save className="mr-2 h-4 w-4" /> Save Changes (Disabled)
+          <Button type="submit" variant="hero" disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" /> {isSubmitting ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </form>

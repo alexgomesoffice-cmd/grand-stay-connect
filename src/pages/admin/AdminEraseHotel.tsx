@@ -17,9 +17,18 @@ const AdminEraseHotel = () => {
   const [hotels, setHotels] = useState<HotelResponse[]>([]);
   const [search, setSearch] = useState("");
   const [eraseTarget, setEraseTarget] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [filterCity, setFilterCity] = useState("all");
   const [filterType, setFilterType] = useState("all");
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("authToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+    };
+  };
 
   useEffect(() => {
     const loadHotels = async () => {
@@ -52,15 +61,41 @@ const AdminEraseHotel = () => {
     return matchSearch && matchCity && matchType;
   });
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!eraseTarget) return;
-    const hotel = hotels.find((h) => h.hotel_id === eraseTarget);
-    toast({
-      title: "Feature Not Implemented",
-      description: "Hotel deletion requires backend API endpoint (DELETE /api/hotels/:id).",
-      variant: "destructive",
-    });
-    setEraseTarget(null);
+    
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/hotels/${eraseTarget}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete hotel");
+      }
+
+      const deletedHotel = hotels.find((h) => h.hotel_id === eraseTarget);
+      setHotels(hotels.filter((h) => h.hotel_id !== eraseTarget));
+
+      toast({
+        title: "Hotel Erased Successfully",
+        description: `${deletedHotel?.name || "Hotel"} has been permanently removed.`,
+      });
+
+      setEraseTarget(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete hotel",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const targetHotel = hotels.find((h) => h.hotel_id === eraseTarget);
@@ -220,7 +255,7 @@ const AdminEraseHotel = () => {
         onOpenChange={(open) => !open && setEraseTarget(null)}
         title="Erase this hotel?"
         description={`Are you sure you want to permanently erase "${targetHotel?.name || "this hotel"}"? This action cannot be undone and will remove all associated data.`}
-        confirmLabel="Yes, Erase Hotel"
+        confirmLabel={isDeleting ? "Erasing..." : "Yes, Erase Hotel"}
         onConfirm={handleDelete}
         variant="destructive"
       />
