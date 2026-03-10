@@ -42,11 +42,22 @@ export async function apiRequest(
     headers: getAuthHeaders(),
   };
 
-  if (body && (method === "POST" || method === "PATCH" || method === "PUT")) {
+  if (body !== undefined && body !== null && (method === "POST" || method === "PATCH" || method === "PUT")) {
+    // even if body is an empty object or array we stringify it
     options.body = JSON.stringify(body);
+  } else {
+    // no body being sent; remove content-type header so express.json won't try parsing
+    if (options.headers && options.headers["Content-Type"]) {
+      delete options.headers["Content-Type"];
+    }
   }
 
   try {
+    // debug: log outgoing body to help diagnose parsing errors
+    if (options.body !== undefined) {
+      console.debug("API Request Body", options.body);
+    }
+
     const response = await fetch(url, options);
     const data = await response.json();
 
@@ -87,6 +98,13 @@ export function apiPost(endpoint: string, body: Record<string, unknown>) {
  */
 export function apiPatch(endpoint: string, body: Record<string, unknown>) {
   return apiRequest("PATCH", endpoint, body);
+}
+
+/**
+ * Helper for PUT requests
+ */
+export function apiPut(endpoint: string, body: Record<string, unknown>) {
+  return apiRequest("PUT", endpoint, body);
 }
 
 /**

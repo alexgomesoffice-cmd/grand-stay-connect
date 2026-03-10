@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { apiPost } from "@/utils/api";
 
 const bangladeshCities = [
   "Dhaka", "Chittagong", "Khulna", "Rajshahi", "Sylhet",
@@ -25,6 +26,27 @@ const hotelAmenities = [
   "Wheelchair Accessible", "Pet Friendly", "Kids Play Area", "Business Center",
 ];
 
+interface FormData {
+  name: string;
+  city: string;
+  address: string;
+  zipCode: string;
+  description: string;
+  hotel_type: string;
+  star_rating: string;
+  email: string;
+  emergency_contact1: string;
+  emergency_contact2: string;
+  reception_no1: string;
+  reception_no2: string;
+  owner_name: string;
+  admin_name: string;
+  admin_email: string;
+  admin_password: string;
+  admin_phone: string;
+  admin_nid: string;
+}
+
 const AdminAddHotel = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -33,11 +55,25 @@ const AdminAddHotel = () => {
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
-  const [formData, setFormData] = useState({
-    name: "", city: "", address: "", zipCode: "", description: "", hotel_type: "", star_rating: "",
-    email: "", emergency_contact1: "", emergency_contact2: "", reception_no1: "", reception_no2: "",
-    owner_name: "", manager_name: "", manager_phone: "",
-    admin_name: "", admin_email: "", admin_password: "", admin_phone: "", admin_nid: "",
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    city: "",
+    address: "",
+    zipCode: "",
+    description: "",
+    hotel_type: "",
+    star_rating: "",
+    email: "",
+    emergency_contact1: "",
+    emergency_contact2: "",
+    reception_no1: "",
+    reception_no2: "",
+    owner_name: "",
+    admin_name: "",
+    admin_email: "",
+    admin_password: "",
+    admin_phone: "",
+    admin_nid: "",
   });
 
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -101,64 +137,47 @@ const AdminAddHotel = () => {
         imageUrls = imagePreviews.slice(0, 8);
       }
 
-      // Step 2: Create hotel with amenities and images
-      const hotelResponse = await fetch("/api/hotels/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          city: formData.city,
-          address: formData.address,
-          zip_code: formData.zipCode,
-          description: formData.description,
-          hotel_type: formData.hotel_type,
-          star_rating: Number(formData.star_rating),
-          email: formData.email,
-          emergency_contact1: formData.emergency_contact1,
-          emergency_contact2: formData.emergency_contact2,
+      // Step 2: Create hotel with amenities, images, details and optional admin
+      // build payload separately so we can inspect it
+      const payload = {
+        name: formData.name,
+        city: formData.city,
+        address: formData.address,
+        zip_code: formData.zipCode,
+        hotel_type: formData.hotel_type,
+        email: formData.email,
+        emergency_contact1: formData.emergency_contact1,
+        emergency_contact2: formData.emergency_contact2,
+        owner_name: formData.owner_name,
+          details: {
           reception_no1: formData.reception_no1,
           reception_no2: formData.reception_no2,
-          owner_name: formData.owner_name,
-          manager_name: formData.manager_name,
-          manager_phone: formData.manager_phone,
-          images: imageUrls, // Pass array of image URLs
-          amenities: selectedAmenities,
-        }),
-      });
-
-      const hotelData = await hotelResponse.json();
-
-      if (!hotelResponse.ok) {
-        throw new Error(hotelData.message || "Failed to create hotel");
-      }
-
-      const hotelId = hotelData.data.hotel_id;
-
-      // Step 3: Create hotel admin (in hotel_admins table)
-      const adminResponse = await fetch("/api/hotel-admin/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
+          star_rating: formData.star_rating ? Number(formData.star_rating) : undefined,
+          description: formData.description,
         },
-        body: JSON.stringify({
-          hotel_id: hotelId,
+        images: imageUrls, // Pass array of image URLs
+        amenities: selectedAmenities,
+        admin: {
           name: formData.admin_name,
           email: formData.admin_email,
           password: formData.admin_password,
           phone: formData.admin_phone,
           nid_no: formData.admin_nid,
-        }),
-      });
+        },
+      };
 
-      const adminData = await adminResponse.json();
+      console.log("[AdminAddHotel] submitting payload", payload);
 
-      if (!adminResponse.ok) {
-        throw new Error(adminData.message || "Failed to create hotel admin");
+      const hotelResponse = await apiPost("/hotels/create", payload);
+
+      const hotelData = hotelResponse;
+
+      if (hotelResponse.success === false) {
+        throw new Error(hotelResponse.message || "Failed to create hotel");
       }
+
+      // we no longer need a separate admin creation step
+      const hotelId = hotelData.data.hotel_id;
 
       toast({
         title: "Success",
@@ -283,29 +302,13 @@ const AdminAddHotel = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Owner's Name</Label>
                 <Input
                   value={formData.owner_name}
                   onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
                   placeholder="Hotel owner"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Hotel Manager Name</Label>
-                <Input
-                  value={formData.manager_name}
-                  onChange={(e) => setFormData({ ...formData, manager_name: e.target.value })}
-                  placeholder="Manager name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Manager's Phone</Label>
-                <Input
-                  value={formData.manager_phone}
-                  onChange={(e) => setFormData({ ...formData, manager_phone: e.target.value })}
-                  placeholder="+880-XXX-XXXXXX"
                 />
               </div>
             </div>

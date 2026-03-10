@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { apiPost } from "@/utils/api";
 
 const AdminAddSystemAdmin = () => {
   const navigate = useNavigate();
@@ -46,20 +47,14 @@ const AdminAddSystemAdmin = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/system-admin/create", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+      const response = await apiPost("/system-admin/create", {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to create system admin");
+      if (response.success === false) {
+        throw new Error(response.message || "Failed to create system admin");
       }
 
       toast({

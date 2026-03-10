@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchHotels, type HotelResponse } from "@/services/adminApi";
 import { useToast } from "@/hooks/use-toast";
+import { apiPut } from "@/utils/api";
 
 const bangladeshCities = [
   "Dhaka", "Chittagong", "Khulna", "Rajshahi", "Sylhet",
@@ -93,26 +94,22 @@ const AdminUpdateHotel = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/hotels/${id}`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: formData.name,
-          address: formData.address,
-          city: formData.city,
-          hotel_type: formData.hotel_type,
+      const response = await apiPut(`/hotels/${id}`, {
+        name: formData.name,
+        address: formData.address,
+        city: formData.city,
+        hotel_type: formData.hotel_type,
+        owner_name: formData.owner_name,
+        emergency_contact1: formData.emergency_contact1,
+        details: {
           description: formData.description,
-          star_rating: Number(formData.star_rating),
-          owner_name: formData.owner_name,
           reception_no1: formData.reception_no1,
-          emergency_contact1: formData.emergency_contact1,
-        }),
+          star_rating: formData.star_rating ? Number(formData.star_rating) : undefined,
+        },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update hotel");
+      if (response.success === false) {
+        throw new Error(response.message || "Failed to update hotel");
       }
 
       toast({
