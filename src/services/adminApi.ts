@@ -72,8 +72,14 @@ export async function fetchHotels(
     throw new Error(response.message || "Failed to fetch hotels");
   }
 
-  // API returns { data: { hotels: [...], total, skip, take } }
-  const hotelsData = response.data?.hotels || response.data;
+  // API returns { data: { hotels: [...], total, skip, take } } or { payload: [...] } or just array
+  let hotelsData = response.data?.hotels || response.data?.payload || response.data;
+  
+  // Handle case where hotels is nested deeper
+  if (hotelsData && typeof hotelsData === 'object' && !Array.isArray(hotelsData)) {
+    // If it's an object with hotels property, extract it
+    hotelsData = hotelsData.hotels || hotelsData.payload || Object.values(hotelsData).find(v => Array.isArray(v));
+  }
 
   // Ensure it's an array
   if (!Array.isArray(hotelsData)) {
@@ -112,8 +118,14 @@ export async function fetchBookings(
     throw new Error(response.message || "Failed to fetch bookings");
   }
 
-  // API returns { data: { bookings: [...], total, skip, take } }
-  const bookingsData = response.data?.bookings || response.data;
+  // API returns { data: { bookings: [...], total, skip, take } } or { payload: [...] } or just array
+  let bookingsData = response.data?.bookings || response.data?.payload || response.data;
+  
+  // Handle case where bookings is nested deeper
+  if (bookingsData && typeof bookingsData === 'object' && !Array.isArray(bookingsData)) {
+    // If it's an object with bookings property, extract it
+    bookingsData = bookingsData.bookings || bookingsData.payload || Object.values(bookingsData).find(v => Array.isArray(v));
+  }
 
   // Ensure it's an array
   if (!Array.isArray(bookingsData)) {
@@ -126,43 +138,48 @@ export async function fetchBookings(
 
 /**
  * Fetch all end users from backend
- * GET /api/end-users (if endpoint exists, otherwise filter from bookings)
+ * GET /api/end-users
  */
 export async function fetchEndUsers(
   params?: {
-    page?: number;
-    limit?: number;
+    skip?: number;
+    take?: number;
+    search?: string;
+    is_blocked?: boolean;
   }
 ) {
-  try {
-    const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", String(params.page));
-    if (params?.limit) queryParams.append("limit", String(params.limit));
+  const queryParams = new URLSearchParams();
+  if (params?.skip !== undefined) queryParams.append("skip", String(params.skip));
+  if (params?.take !== undefined) queryParams.append("take", String(params.take));
+  if (params?.search) queryParams.append("search", params.search);
+  if (params?.is_blocked !== undefined) queryParams.append("is_blocked", String(params.is_blocked));
 
-    const endpoint = `/end-users${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
-    const response = await apiGet(endpoint);
+  const endpoint = `/end-users${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+  const response = await apiGet(endpoint);
 
-    console.log("Fetch End Users Response:", response);
+  console.log("Fetch End Users Response:", response);
 
-    // Handle different response formats
-    if (response.success === false) {
-      throw new Error(response.message || "Failed to fetch end users");
-    }
+  // Handle different response formats
+  if (response.success === false) {
+    throw new Error(response.message || "Failed to fetch end users");
+  }
 
-    // API returns { data: { end_users: [...], total, skip, take } } or similar
-    const usersData = response.data?.end_users || response.data?.users || response.data;
+  // API returns { data: { end_users: [...], total, skip, take } }
+  let usersData = response.data?.end_users || response.data?.users || response.data;
+  
+  // Handle case where users is nested deeper
+  if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
+    // If it's an object with users property, extract it
+    usersData = usersData.end_users || usersData.users || usersData.payload || Object.values(usersData).find(v => Array.isArray(v));
+  }
 
-    // Ensure it's an array
-    if (!Array.isArray(usersData)) {
-      console.warn("End users response is not an array:", usersData);
-      return [];
-    }
-
-    return usersData as EndUserResponse[];
-  } catch (error) {
-    console.warn("Could not fetch end users from dedicated endpoint, falling back to empty array", error);
+  // Ensure it's an array
+  if (!Array.isArray(usersData)) {
+    console.warn("End users response is not an array:", usersData);
     return [];
   }
+
+  return usersData as EndUserResponse[];
 }
 
 /**

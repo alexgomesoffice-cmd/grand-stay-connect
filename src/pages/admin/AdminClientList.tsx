@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { fetchEndUsers, fetchBookings, EndUserResponse, BookingResponse } from "@/services/adminApi";
+import { apiDelete, apiPut } from "@/utils/api";
 
 const AdminClientList = () => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ const AdminClientList = () => {
       try {
         setIsLoading(true);
         const [clientsData, bookingsData] = await Promise.all([
-          fetchEndUsers({ limit: 100 }),
+          fetchEndUsers({ take: 100 }),
           fetchBookings({ limit: 100 }),
         ]);
         setClients(clientsData);
@@ -57,29 +58,62 @@ const AdminClientList = () => {
     (c) => (c.name?.toLowerCase().includes(search.toLowerCase()) ?? false) || c.email.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const eraseClient = () => {
+  const eraseClient = async () => {
     if (!eraseTarget) return;
     const client = clients.find((c) => c.end_user_id === eraseTarget);
-    // Note: In a real app, you'd call a DELETE endpoint here
-    // For now, just show a message
-    toast({ 
-      title: "Client erase not implemented", 
-      description: `Would delete ${client?.name || "client"}. This requires a backend endpoint.`,
-      variant: "destructive"
-    });
+    
+    try {
+      const response = await apiDelete(`/end-users/${eraseTarget}`);
+      
+      if (!response.success) {
+        throw new Error(response.message || "Failed to delete client");
+      }
+
+      setClients(clients.filter((c) => c.end_user_id !== eraseTarget));
+      toast({
+        title: "Client Erased",
+        description: `${client?.name || "Client"} has been permanently removed.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete client",
+        variant: "destructive"
+      });
+    }
     setEraseTarget(null);
   };
 
-  const toggleBlock = () => {
+  const toggleBlock = async () => {
     if (!blockTarget) return;
     const client = clients.find((c) => c.end_user_id === blockTarget);
-    // Note: In a real app, you'd call a PUT/PATCH endpoint here
-    // For now, just show a message
-    toast({ 
-      title: "Block toggle not implemented",
-      description: `Would ${client?.is_blocked ? "unblock" : "block"} ${client?.name || "client"}. This requires a backend endpoint.`,
-      variant: "default"
-    });
+    
+    try {
+      const newBlockStatus = !client?.is_blocked;
+      const response = await apiPut(`/end-users/${blockTarget}/block`, {
+        is_blocked: newBlockStatus,
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to update block status");
+      }
+
+      // Update the client in the list
+      setClients(clients.map((c) => 
+        c.end_user_id === blockTarget ? { ...c, is_blocked: newBlockStatus } : c
+      ));
+
+      toast({
+        title: "Client Status Updated",
+        description: `${client?.name || "Client"} has been ${newBlockStatus ? "blocked" : "unblocked"}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update block status",
+        variant: "destructive"
+      });
+    }
     setBlockTarget(null);
   };
 

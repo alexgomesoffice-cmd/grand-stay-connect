@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { fetchEndUsers, EndUserResponse } from "@/services/adminApi";
+import { apiDelete } from "@/utils/api";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const AdminEraseClient = () => {
@@ -17,14 +18,6 @@ const AdminEraseClient = () => {
   const [search, setSearch] = useState("");
   const [eraseTarget, setEraseTarget] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("authToken");
-    return {
-      "Content-Type": "application/json",
-      ...(token && { "Authorization": `Bearer ${token}` }),
-    };
-  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -54,15 +47,10 @@ const AdminEraseClient = () => {
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/end-users/${eraseTarget}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
+      const response = await apiDelete(`/end-users/${eraseTarget}`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to delete client");
+      if (!response.success) {
+        throw new Error(response.message || "Failed to delete client");
       }
 
       const deletedClient = clients.find((c) => c.end_user_id === eraseTarget);

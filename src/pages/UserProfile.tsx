@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getLoggedInUser, setLoggedInUser } from "@/components/Navbar";
+import { getLoggedInUser, setLoggedInUser } from "@/utils/auth";
 
 const PROFILE_KEY = "stayvista-user-profile";
 
@@ -32,7 +32,7 @@ const UserProfile = () => {
     } else {
       setProfile({ name: user.name, email: user.email, phone: "", dob: "", address: "" });
     }
-  }, []);
+  }, [user, navigate]);
 
   const handleSave = () => {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));

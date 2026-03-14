@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getLoggedInUser } from "@/components/Navbar";
+import { getLoggedInUser } from "@/utils/auth";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const UserSettings = () => {
@@ -21,7 +21,7 @@ const UserSettings = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
-  useEffect(() => { if (!user) navigate("/login"); }, []);
+  useEffect(() => { if (!user) navigate("/login"); }, [user, navigate]);
   if (!user) return null;
 
   const handlePasswordChange = (e: React.FormEvent) => {

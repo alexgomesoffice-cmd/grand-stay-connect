@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getLoggedInUser } from "@/components/Navbar";
+import { getLoggedInUser } from "@/utils/auth";
 import { useEffect } from "react";
 
 const mockBookings = [
@@ -26,7 +26,7 @@ const MyBookings = () => {
 
   useEffect(() => {
     if (!user) navigate("/login");
-  }, []);
+  }, [user, navigate]);
 
   if (!user) return null;
 

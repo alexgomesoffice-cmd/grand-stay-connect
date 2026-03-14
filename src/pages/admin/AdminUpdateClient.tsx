@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { fetchEndUsers, EndUserResponse } from "@/services/adminApi";
+import { apiPut } from "@/utils/api";
 
 const emptyForm = {
   name: "",
@@ -24,14 +25,6 @@ const AdminUpdateClient = () => {
   const [client, setClient] = useState<EndUserResponse | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [blocked, setBlocked] = useState(false);
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("authToken");
-    return {
-      "Content-Type": "application/json",
-      ...(token && { "Authorization": `Bearer ${token}` }),
-    };
-  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -110,24 +103,13 @@ const AdminUpdateClient = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/end-users/${id}`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: formData.name,
-          is_blocked: blocked,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update client");
-      }
-
+      // Note: There's no general PUT endpoint for end-users, only for blocking
+      // For now, just show a success message. Actual name/email updates would need a dedicated endpoint.
+      
       toast({
-        title: "Client Updated Successfully",
-        description: `${formData.name} has been updated.`,
+        title: "Note",
+        description: "Name/email updates are read-only. Use the block toggle to manage client status.",
+        variant: "default"
       });
 
       navigate("/admin/clients");
@@ -146,19 +128,12 @@ const AdminUpdateClient = () => {
     setBlocked(!checked);
     
     try {
-      const response = await fetch(`/api/end-users/${id}`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: formData.name,
-          is_blocked: !checked,
-        }),
+      const response = await apiPut(`/end-users/${id}/block`, {
+        is_blocked: !checked,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update client status");
+      if (!response.success) {
+        throw new Error(response.message || "Failed to update client status");
       }
 
       toast({

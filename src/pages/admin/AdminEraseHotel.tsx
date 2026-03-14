@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchHotels, type HotelResponse } from "@/services/adminApi";
 import { useToast } from "@/hooks/use-toast";
+import { apiDelete } from "@/utils/api";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const AdminEraseHotel = () => {
@@ -21,14 +22,6 @@ const AdminEraseHotel = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [filterCity, setFilterCity] = useState("all");
   const [filterType, setFilterType] = useState("all");
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("authToken");
-    return {
-      "Content-Type": "application/json",
-      ...(token && { "Authorization": `Bearer ${token}` }),
-    };
-  };
 
   useEffect(() => {
     const loadHotels = async () => {
@@ -67,15 +60,10 @@ const AdminEraseHotel = () => {
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/hotels/${eraseTarget}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
+      const response = await apiDelete(`/hotels/${eraseTarget}`);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to delete hotel");
+      if (!response.success) {
+        throw new Error(response.message || "Failed to delete hotel");
       }
 
       const deletedHotel = hotels.find((h) => h.hotel_id === eraseTarget);
