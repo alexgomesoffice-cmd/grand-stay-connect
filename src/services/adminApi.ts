@@ -15,8 +15,15 @@ export interface HotelResponse {
   city: string | null;
   hotel_type: string | null;
   owner_name: string | null;
-  description: string | null;
-  star_rating: number | null;
+  zip_code?: string | null;
+  emergency_contact1?: string | null;
+  emergency_contact2?: string | null;
+  hotel_details?: {
+    description?: string | null;
+    reception_no1?: string | null;
+    reception_no2?: string | null;
+    star_rating?: number | null;
+  };
   approval_status: string;
   created_at: string;
   updated_at: string;

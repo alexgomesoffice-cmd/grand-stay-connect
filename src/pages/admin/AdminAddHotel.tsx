@@ -29,6 +29,11 @@ interface FormData {
   admin_nid: string;
 }
 
+const bangladeshCities = [
+  "Dhaka", "Chittagong", "Khulna", "Rajshahi", "Sylhet",
+  "Rangpur", "Barisal", "Comilla", "Gazipur", "Narayanganj",
+];
+
 const AdminAddHotel = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -39,7 +44,7 @@ const AdminAddHotel = () => {
   
   const [formData, setFormData] = useState<FormData>({
     name: "",
-    city: "",
+    city: "Dhaka",
     address: "",
     zipCode: "",
     hotel_type: "hotel",
@@ -134,7 +139,7 @@ const AdminAddHotel = () => {
       // Convert images to base64 URLs
       const imageUrls = imagePreviews;
 
-      // Create hotel payload - NO description field, NO amenities field
+      // Create hotel payload 
       const payload = {
         name: formData.name,
         city: formData.city,
@@ -286,14 +291,21 @@ const AdminAddHotel = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="city">City *</Label>
-                <Input
-                  id="city"
-                  name="city"
+                <Select
                   value={formData.city}
-                  onChange={handleInputChange}
-                  placeholder="Enter city"
-                  className="mt-1"
-                />
+                  onValueChange={(value) => handleSelectChange("city", value)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bangladeshCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="zipCode">Zip Code *</Label>

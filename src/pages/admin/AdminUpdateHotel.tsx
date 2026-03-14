@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchHotels, type HotelResponse } from "@/services/adminApi";
+import { fetchHotelById, type HotelResponse } from "@/services/adminApi";
 import { useToast } from "@/hooks/use-toast";
 import { apiPut } from "@/utils/api";
 
@@ -24,15 +24,7 @@ const AdminUpdateHotel = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hotel, setHotel] = useState<HotelResponse | null>(null);
-  
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("authToken");
-    return {
-      "Content-Type": "application/json",
-      ...(token && { "Authorization": `Bearer ${token}` }),
-    };
-  };
-  
+
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -42,28 +34,38 @@ const AdminUpdateHotel = () => {
     star_rating: "3",
     owner_name: "",
     reception_no1: "",
+    reception_no2: "",
     emergency_contact1: "",
+    emergency_contact2: "",
+    zip_code: "",
+    email: "",
   });
 
   useEffect(() => {
     const loadHotel = async () => {
       try {
-        const hotels = await fetchHotels();
-        const foundHotel = hotels.find((h: HotelResponse) => h.hotel_id === Number(id));
-        if (foundHotel) {
-          setHotel(foundHotel);
-          setFormData({
-            name: foundHotel.name,
-            address: foundHotel.address || "",
-            city: foundHotel.city || "Dhaka",
-            hotel_type: foundHotel.hotel_type || "",
-            description: foundHotel.description || "",
-            star_rating: String(foundHotel.star_rating || "3"),
-            owner_name: foundHotel.owner_name || "",
-            reception_no1: "",
-            emergency_contact1: "",
-          });
+        if (!id) {
+          throw new Error("Hotel id is missing");
         }
+        const hotelId = Number(id);
+        const foundHotel = await fetchHotelById(hotelId);
+        setHotel(foundHotel);
+
+        setFormData({
+          name: foundHotel.name || "",
+          address: foundHotel.address || "",
+          city: foundHotel.city || "Dhaka",
+          hotel_type: foundHotel.hotel_type || "",
+          description: foundHotel.hotel_details?.description || "",
+          star_rating: String(foundHotel.hotel_details?.star_rating ?? 3),
+          owner_name: foundHotel.owner_name || "",
+          reception_no1: foundHotel.hotel_details?.reception_no1 || "",
+          reception_no2: foundHotel.hotel_details?.reception_no2 || "",
+          emergency_contact1: foundHotel.emergency_contact1 || "",
+          emergency_contact2: foundHotel.emergency_contact2 || "",
+          zip_code: foundHotel.zip_code || "",
+          email: foundHotel.email || "",
+        });
       } catch (error) {
         toast({
           title: "Error",
@@ -100,10 +102,14 @@ const AdminUpdateHotel = () => {
         city: formData.city,
         hotel_type: formData.hotel_type,
         owner_name: formData.owner_name,
-        emergency_contact1: formData.emergency_contact1,
+        email: formData.email || undefined,
+        emergency_contact1: formData.emergency_contact1 || undefined,
+        emergency_contact2: formData.emergency_contact2 || undefined,
+        zip_code: formData.zip_code || undefined,
         details: {
-          description: formData.description,
-          reception_no1: formData.reception_no1,
+          description: formData.description || undefined,
+          reception_no1: formData.reception_no1 || undefined,
+          reception_no2: formData.reception_no2 || undefined,
           star_rating: formData.star_rating ? Number(formData.star_rating) : undefined,
         },
       });
@@ -255,21 +261,59 @@ const AdminUpdateHotel = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Reception Number</Label>
+                <Label>Email</Label>
+                <Input
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Hotel email"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Reception Number 1</Label>
                 <Input
                   value={formData.reception_no1}
                   onChange={(e) => setFormData({ ...formData, reception_no1: e.target.value })}
                   placeholder="+880-XXX-XXXXXX"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Reception Number 2</Label>
+                <Input
+                  value={formData.reception_no2}
+                  onChange={(e) => setFormData({ ...formData, reception_no2: e.target.value })}
+                  placeholder="Optional second reception" 
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Emergency Contact 1</Label>
+                <Input
+                  value={formData.emergency_contact1}
+                  onChange={(e) => setFormData({ ...formData, emergency_contact1: e.target.value })}
+                  placeholder="Emergency phone number" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Emergency Contact 2</Label>
+                <Input
+                  value={formData.emergency_contact2}
+                  onChange={(e) => setFormData({ ...formData, emergency_contact2: e.target.value })}
+                  placeholder="Optional emergency contact"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Emergency Contact</Label>
+              <Label>Zip Code</Label>
               <Input
-                value={formData.emergency_contact1}
-                onChange={(e) => setFormData({ ...formData, emergency_contact1: e.target.value })}
-                placeholder="Emergency phone number"
+                value={formData.zip_code}
+                onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                placeholder="Zip code"
               />
             </div>
           </CardContent>

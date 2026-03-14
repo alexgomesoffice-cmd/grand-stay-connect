@@ -9,7 +9,7 @@
  * - Error handling
  */
 
-const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 /**
  * Get authorization headers with token if available
@@ -59,7 +59,20 @@ export async function apiRequest(
     }
 
     const response = await fetch(url, options);
-    const data = await response.json();
+
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (parseError) {
+      console.error(`API Response JSON parse error [${method} ${endpoint}] text=`, text);
+      throw new Error(`API JSON parse error: ${parseError instanceof Error ? parseError.message : "Unknown"}`);
+    }
+
+    if (!response.ok) {
+      const message = (data && (data.message || data.error?.message)) || `API request failed with status ${response.status}`;
+      throw new Error(message);
+    }
 
     // Check if token is invalid (401 Unauthorized)
     if (response.status === 401) {
