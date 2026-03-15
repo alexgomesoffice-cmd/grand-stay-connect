@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format, differenceInDays } from "date-fns";
 import { 
   Check, 
@@ -21,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getLoggedInUser } from "@/utils/auth";
 import { Hotel, Room } from "@/data/hotels";
 
 interface BookingConfirmationProps {
@@ -42,8 +44,10 @@ const BookingConfirmation = ({
   checkOut,
   guests,
 }: BookingConfirmationProps) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<"details" | "payment" | "confirmed">("details");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isReserving, setIsReserving] = useState(false);
   const [guestInfo, setGuestInfo] = useState({
     firstName: "",
     lastName: "",
@@ -65,6 +69,41 @@ const BookingConfirmation = ({
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setIsProcessing(false);
     setStep("confirmed");
+  };
+
+  const handleReserveBooking = () => {
+    const user = getLoggedInUser();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+
+    const booking = {
+      id: `BK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+      hotel: hotel.name,
+      location: hotel.location,
+      room: room.name,
+      checkIn: format(checkIn, "yyyy-MM-dd"),
+      checkOut: format(checkOut, "yyyy-MM-dd"),
+      amount: `$${grandTotal}`,
+      status: "reserved",
+      bookedBy: user?.name || `${guestInfo.firstName} ${guestInfo.lastName}`,
+      email: guestInfo.email,
+      guests,
+      reservedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      specialRequests: guestInfo.specialRequests,
+      phone: guestInfo.phone,
+    };
+
+    const existingRaw = localStorage.getItem("stayvista-bookings");
+    const existingBookings = existingRaw ? JSON.parse(existingRaw) : [];
+    localStorage.setItem("stayvista-bookings", JSON.stringify([booking, ...existingBookings]));
+
+    setIsReserving(true);
+    setTimeout(() => {
+      setIsReserving(false);
+      handleClose();
+      navigate("/my-bookings");
+    }, 1400);
   };
 
   const handleClose = () => {
@@ -141,7 +180,7 @@ const BookingConfirmation = ({
               <Button variant="outline" className="flex-1" onClick={handleClose}>
                 Back to Hotel
               </Button>
-              <Button variant="hero" className="flex-1">
+              <Button variant="hero" className="flex-1" onClick={() => { handleClose(); navigate("/my-bookings"); }}>
                 View My Bookings
               </Button>
             </div>
@@ -300,6 +339,15 @@ const BookingConfirmation = ({
                   disabled={!guestInfo.firstName || !guestInfo.lastName || !guestInfo.email}
                 >
                   Continue to Payment
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full mt-3 border-amber-400 text-amber-600 hover:bg-amber-500/10"
+                  onClick={handleReserveBooking}
+                  disabled={!guestInfo.firstName || !guestInfo.lastName || !guestInfo.email || isReserving}
+                >
+                  {isReserving ? "Reserving..." : "Save & Skip Payment"}
                 </Button>
               </div>
             ) : (
