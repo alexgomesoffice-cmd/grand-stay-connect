@@ -51,6 +51,7 @@ import HotelAdminGuestProfile from "./pages/hotel-admin/HotelAdminGuestProfile";
 import HotelAdminRevenue from "./pages/hotel-admin/HotelAdminRevenue";
 import HotelAdminReviews from "./pages/hotel-admin/HotelAdminReviews";
 import HotelAdminSettings from "./pages/hotel-admin/HotelAdminSettings";
+import HotelAdminHotelEdit from "./pages/hotel-admin/HotelAdminHotelEdit";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,7 @@ const App = () => (
               <Route path="rooms" element={<HotelAdminRooms />} />
               <Route path="add-room" element={<HotelAdminAddRoom />} />
               <Route path="add-sub-admin" element={<HotelAdminAddSubAdmin />} />
+              <Route path="update-hotel" element={<HotelAdminHotelEdit />} />
               <Route path="reservations" element={<HotelAdminReservations />} />
               <Route path="reservations/:id" element={<HotelAdminReservationDetail />} />
               <Route path="guest/:id" element={<HotelAdminGuestProfile />} />

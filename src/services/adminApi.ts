@@ -27,6 +27,8 @@ export interface HotelResponse {
   approval_status: string;
   created_at: string;
   updated_at: string;
+  hotel_images?: { image_url: string }[];
+  hotel_amenities?: { amenity: { name: string } }[];
 }
 
 export interface BookingResponse {
@@ -204,6 +206,29 @@ export async function fetchHotelById(hotelId: number) {
 
   const data = response.data || response;
   return data as HotelResponse;
+}
+
+export interface AmenityOption {
+  id: number;
+  name: string;
+}
+
+/**
+ * Fetch all amenity options for hotel forms
+ * GET /api/hotels/amenities
+ */
+export async function fetchAmenities() {
+  const response = await apiGet("/hotels/amenities");
+  if (response.success === false) {
+    throw new Error(response.message || "Failed to fetch amenities");
+  }
+
+  const data = response.data || response;
+  if (!Array.isArray(data)) {
+    throw new Error("Invalid amenities response");
+  }
+
+  return data as AmenityOption[];
 }
 
 /**

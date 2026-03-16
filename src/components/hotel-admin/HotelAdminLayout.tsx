@@ -11,6 +11,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/hotel-admin" },
+  { icon: Hotel, label: "Manage Hotel", path: "/hotel-admin/update-hotel" },
   { icon: BedDouble, label: "Rooms", path: "/hotel-admin/rooms" },
   { icon: Calendar, label: "Reservations", path: "/hotel-admin/reservations" },
   { icon: DollarSign, label: "Revenue", path: "/hotel-admin/revenue" },
