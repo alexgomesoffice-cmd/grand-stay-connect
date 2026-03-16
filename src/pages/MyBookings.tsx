@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +42,7 @@ const mapStatus = (status: string) => {
 const MyBookings = () => {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<MyBooking[]>([]);
-  const user = getLoggedInUser();
+  const user = useMemo(() => getLoggedInUser(), []);
 
   useEffect(() => {
     if (!user) {
@@ -61,7 +61,7 @@ const MyBookings = () => {
     } else {
       setBookings([]);
     }
-  }, [navigate, user]);
+  }, [navigate, user?.email]);
 
   if (!user) return null;
 

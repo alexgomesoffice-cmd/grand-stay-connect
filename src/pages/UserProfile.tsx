@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Mail, Phone, Calendar, MapPin, Edit, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ const PROFILE_KEY = "stayvista-user-profile";
 
 const UserProfile = () => {
   const navigate = useNavigate();
-  const user = getLoggedInUser();
+  const user = useMemo(() => getLoggedInUser(), []);
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: "",
@@ -25,14 +25,18 @@ const UserProfile = () => {
   });
 
   useEffect(() => {
-    if (!user) { navigate("/login"); return; }
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
     const saved = localStorage.getItem(PROFILE_KEY);
     if (saved) {
       setProfile(JSON.parse(saved));
     } else {
       setProfile({ name: user.name, email: user.email, phone: "", dob: "", address: "" });
     }
-  }, [user, navigate]);
+  }, [navigate, user?.email]);
 
   const handleSave = () => {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
