@@ -178,7 +178,7 @@ const AdminEraseHotel = () => {
                             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
                               <span className="flex items-center gap-1"><MapPin className="h-4 w-4 shrink-0" /> {hotel.city || "N/A"}</span>
                               <span className="flex items-center gap-1"><BedDouble className="h-4 w-4 shrink-0" /> {hotel.hotel_type || "N/A"}</span>
-                              {hotel.star_rating && <span className="flex items-center gap-1"><Star className="h-4 w-4 shrink-0 text-amber-500" /> {hotel.star_rating} Stars</span>}
+                              {hotel.hotel_details?.star_rating && <span className="flex items-center gap-1"><Star className="h-4 w-4 shrink-0 text-amber-500" /> {hotel.hotel_details.star_rating} Stars</span>}
                             </div>
                           </div>
                         </div>
@@ -214,9 +214,9 @@ const AdminEraseHotel = () => {
                       <h3 className="text-lg font-semibold">{hotel.name}</h3>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-4 w-4" /> {hotel.city || "N/A"}</div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground capitalize"><BedDouble className="h-4 w-4" /> {hotel.hotel_type || "N/A"}</div>
-                      {hotel.star_rating && (
+                      {hotel.hotel_details?.star_rating && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Star className="h-4 w-4 text-amber-500" /> {hotel.star_rating} Stars
+                          <Star className="h-4 w-4 text-amber-500" /> {hotel.hotel_details.star_rating} Stars
                         </div>
                       )}
                       <div className="pt-2">
