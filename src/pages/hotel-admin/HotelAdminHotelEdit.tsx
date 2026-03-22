@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { fetchAmenities, fetchHotelById, type AmenityOption, type HotelResponse } from "@/services/adminApi";
 import { useToast } from "@/hooks/use-toast";
-import { apiPut } from "@/utils/api";
+import { apiPut, apiGet } from "@/utils/api";
 
 const HotelAdminHotelEdit = () => {
   const navigate = useNavigate();
@@ -30,9 +30,15 @@ const HotelAdminHotelEdit = () => {
   useEffect(() => {
     const loadHotel = async () => {
       try {
-        const hotelId = Number(localStorage.getItem("hotelId"));
-        if (!hotelId) throw new Error("Assigned hotel not found. Please login again.");
+        // Get the hotel assigned to this authenticated hotel admin
+        const hotelResponse = await apiGet("/hotels/admin/me/assigned-hotel");
+        if (!hotelResponse.success || !hotelResponse.data?.hotel_id) {
+          throw new Error("Could not fetch your assigned hotel");
+        }
 
+        const hotelId = hotelResponse.data.hotel_id;
+
+        // Now fetch full hotel details
         const [foundHotel, amenitiesList] = await Promise.all([
           fetchHotelById(hotelId),
           fetchAmenities(),
@@ -45,14 +51,15 @@ const HotelAdminHotelEdit = () => {
         setReceptionNo1(foundHotel.hotel_details?.reception_no1 || "");
         setReceptionNo2(foundHotel.hotel_details?.reception_no2 || "");
 
-        setImages((foundHotel as any).hotel_images?.map((i: any) => i.image_url) || []);
-        setAmenities((foundHotel as any).hotel_amenities?.map((h: any) => h.amenity?.name || "") || []);
+        setImages(foundHotel.hotel_images?.map((img) => img.image_url) || []);
+        setAmenities(foundHotel.hotel_amenities?.map((item) => item.amenity.name || "") || []);
       } catch (error) {
         toast({
           title: "Error",
           description: error instanceof Error ? error.message : "Failed to load hotel",
           variant: "destructive",
         });
+        navigate("/hotel-admin");
       } finally {
         setIsLoading(false);
         setIsLoaded(true);
@@ -60,7 +67,7 @@ const HotelAdminHotelEdit = () => {
     };
 
     loadHotel();
-  }, [toast]);
+  }, [toast, navigate]);
 
   const handleAddImage = () => {
     if (!newImageUrl.trim()) return;
@@ -83,15 +90,15 @@ const HotelAdminHotelEdit = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const hotelId = Number(localStorage.getItem("hotelId"));
-    if (!hotelId) {
+    
+    if (!hotel?.hotel_id) {
       toast({ title: "Error", description: "Hotel ID missing", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const response = await apiPut(`/hotels/${hotelId}`, {
+      const response = await apiPut(`/hotels/${hotel.hotel_id}`, {
         details: {
           description: description || undefined,
           reception_no1: receptionNo1 || undefined,
