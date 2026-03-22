@@ -100,6 +100,42 @@ export function apiGet(endpoint: string) {
 }
 
 /**
+ * Helper for POST requests with FormData (for file uploads)
+ */
+export async function apiPostFormData(endpoint: string, formData: FormData) {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const token = localStorage.getItem("authToken");
+
+  const options: RequestInit = {
+    method: "POST",
+    headers: token ? { "Authorization": `Bearer ${token}` } : {},
+    body: formData,
+  };
+
+  try {
+    const response = await fetch(url, options);
+    const data = await response.json();
+
+    if (!response.ok) {
+      const message = (data && (data.message || data.error?.message)) || `API request failed with status ${response.status}`;
+      throw new Error(message);
+    }
+
+    if (response.status === 401) {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("userRole");
+      window.location.href = "/login";
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`API Request Error [POST ${endpoint}]:`, error);
+    throw error;
+  }
+}
+
+/**
  * Helper for POST requests
  */
 export function apiPost(endpoint: string, body: Record<string, unknown>) {

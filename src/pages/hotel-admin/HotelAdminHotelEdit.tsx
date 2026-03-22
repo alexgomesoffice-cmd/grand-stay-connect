@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, Upload, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ const HotelAdminHotelEdit = () => {
   const [receptionNo1, setReceptionNo1] = useState("");
   const [receptionNo2, setReceptionNo2] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [amenityOptions, setAmenityOptions] = useState<AmenityOption[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
@@ -79,6 +80,37 @@ const HotelAdminHotelEdit = () => {
     setNewImageUrl("");
   };
 
+  const handleImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    handleImageFiles(files);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    handleImageFiles(files);
+  };
+
+  const handleImageFiles = (files: File[]) => {
+    if (imageFiles.length + files.length > 8) {
+      toast({ 
+        title: "Too many images", 
+        description: `You can only add ${8 - imageFiles.length} more images`, 
+        variant: "destructive" 
+      });
+      return;
+    }
+    setImageFiles(prev => [...prev, ...files]);
+  };
+
+  const removeImageFile = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleAmenityToggle = (name: string) => {
     setAmenities((prev) => {
       if (prev.includes(name)) {
@@ -98,6 +130,33 @@ const HotelAdminHotelEdit = () => {
 
     setIsSubmitting(true);
     try {
+      // Convert uploaded files to base64
+      let uploadedImageUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        uploadedImageUrls = await Promise.all(
+          imageFiles.map(file => 
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const result = reader.result as string;
+                resolve(result);
+              };
+              reader.onerror = () => reject(new Error("Failed to read file"));
+              reader.readAsDataURL(file);
+            })
+          )
+        );
+      }
+
+      // Combine existing and new images
+      const allImages = [...images, ...uploadedImageUrls];
+      
+      // Mark first image as cover
+      const imagesWithCover = allImages.map((url, index) => ({
+        image_url: url,
+        is_cover: index === 0
+      }));
+
       const response = await apiPut(`/hotels/${hotel.hotel_id}`, {
         details: {
           description: description || undefined,
@@ -105,11 +164,14 @@ const HotelAdminHotelEdit = () => {
           reception_no2: receptionNo2 || undefined,
         },
         amenities,
-        images,
+        images: imagesWithCover,
       });
 
       if (response.success === false) throw new Error(response.message || "Failed to update hotel");
 
+      // Clear uploaded files after successful submission
+      setImageFiles([]);
+      
       toast({ title: "Hotel updated", description: "Updated successfully." });
       navigate("/hotel-admin");
     } catch (error) {
@@ -159,32 +221,83 @@ const HotelAdminHotelEdit = () => {
       </div>
 
       <Card className={isLoaded ? "animate-fade-in-up" : "opacity-0"} style={{ animationDelay: "100ms" }}>
-        <CardHeader><CardTitle>Current Images</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {images.length ? images.map((url, i) => (
-              <div key={`${url}-${i}`} className="relative border rounded-lg overflow-hidden">
-                <img src={url} alt={`hotel image ${i + 1}`} className="h-20 w-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
-                  className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500/90"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+        <CardHeader><CardTitle>Hotel Images</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          {/* Existing Images */}
+          {images.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Current Images ({images.length}/8)</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {images.map((url, i) => (
+                  <div key={`${url}-${i}`} className="relative border rounded-lg overflow-hidden group">
+                    <img src={url} alt={`hotel image ${i + 1}`} className="h-20 w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      {i === 0 && (
+                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">Cover</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(i)}
+                      className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500/90 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            )) : (
-              <div className="col-span-full rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">No images yet</div>
-            )}
+            </div>
+          )}
+
+          {/* New Images to Upload */}
+          {imageFiles.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">New Images to Upload ({imageFiles.length})</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {imageFiles.map((file, i) => (
+                  <div key={`${file.name}-${i}`} className="relative border-2 border-primary/30 rounded-lg overflow-hidden group bg-primary/5">
+                    <img src={URL.createObjectURL(file)} alt={file.name} className="h-20 w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="text-white text-xs text-center px-1">New</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeImageFile(i)}
+                      className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500/90"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Drag & Drop Upload Area */}
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleImageDrop}
+            className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer"
+          >
+            <label className="flex flex-col items-center gap-2 cursor-pointer">
+              <ImageIcon className="h-8 w-8 text-muted-foreground" />
+              <div>
+                <p className="font-medium">Drop images here or click to browse</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 8MB. First image will be cover photo</p>
+              </div>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+            </label>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} placeholder="Enter image URL" />
-            <Button type="button" onClick={handleAddImage} className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" /> Add Image
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">You can store up to 8 images.</p>
+          <p className="text-xs text-muted-foreground">
+            Total images: {images.length + imageFiles.length}/8
+          </p>
         </CardContent>
       </Card>
 

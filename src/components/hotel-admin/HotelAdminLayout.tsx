@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import {
   Hotel, LayoutDashboard, BedDouble, Calendar, DollarSign,
   MessageSquare, Settings, LogOut, Menu, X, Bell,
-  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { setLoggedInUser } from "@/utils/auth";
+import { apiGet } from "@/utils/api";
 import NotificationPanel from "@/components/NotificationPanel";
 
 const sidebarItems = [
@@ -25,9 +25,32 @@ const HotelAdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [adminName, setAdminName] = useState("Hotel Admin");
+  const [adminInitials, setAdminInitials] = useState("HA");
+  const [adminRole, setAdminRole] = useState("Manager");
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Fetch current hotel admin/sub-admin data
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        const response = await apiGet("/hotels/admin/me");
+        if (response.success && response.data) {
+          const name = response.data.name || "Hotel Admin";
+          setAdminName(name);
+          setAdminInitials(name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase());
+          setAdminRole(response.data.role === "HOTEL_ADMIN" ? "Hotel Manager" : "Staff Member");
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin data:", error);
+        // Fall back to default values
+      }
+    };
+
+    fetchAdminData();
+  }, []);
 
   const handleLogout = () => {
     // Clear all auth data
@@ -121,13 +144,12 @@ const HotelAdminLayout = () => {
               </div>
               <div className="flex items-center gap-3 pl-3 border-l border-border">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-primary-foreground">HA</span>
+                  <span className="text-sm font-semibold text-primary-foreground">{adminInitials}</span>
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium">Hotel Admin</p>
-                  <p className="text-xs text-muted-foreground">Managing Your Hotel</p>
+                  <p className="text-sm font-medium">{adminName}</p>
+                  <p className="text-xs text-muted-foreground">{adminRole}</p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
           </div>
