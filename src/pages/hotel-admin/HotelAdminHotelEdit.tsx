@@ -27,6 +27,8 @@ const HotelAdminHotelEdit = () => {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [amenityOptions, setAmenityOptions] = useState<AmenityOption[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [coverImageIndex, setCoverImageIndex] = useState<number>(0);
+  const [imageMetadata, setImageMetadata] = useState<Array<{ url: string; is_cover: boolean }>>([]);
 
   useEffect(() => {
     const loadHotel = async () => {
@@ -52,7 +54,14 @@ const HotelAdminHotelEdit = () => {
         setReceptionNo1(foundHotel.hotel_details?.reception_no1 || "");
         setReceptionNo2(foundHotel.hotel_details?.reception_no2 || "");
 
-        setImages(foundHotel.hotel_images?.map((img) => img.image_url) || []);
+        const hotelImgs = foundHotel.hotel_images || [];
+        setImages(hotelImgs.map((img) => img.image_url));
+        setImageMetadata(hotelImgs.map((img) => ({ url: img.image_url, is_cover: img.is_cover || false })));
+        
+        // Find the cover image index
+        const coverIdx = hotelImgs.findIndex((img) => img.is_cover);
+        setCoverImageIndex(coverIdx >= 0 ? coverIdx : 0);
+        
         setAmenities(foundHotel.hotel_amenities?.map((item) => item.amenity.name || "") || []);
       } catch (error) {
         toast({
@@ -109,6 +118,15 @@ const HotelAdminHotelEdit = () => {
 
   const removeExistingImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+    setImageMetadata(prev => prev.filter((_, i) => i !== index));
+    
+    // If the removed image was the cover, set the first remaining image as cover
+    if (coverImageIndex === index) {
+      setCoverImageIndex(0);
+    } else if (coverImageIndex > index) {
+      // If removed image was before the cover, shift cover index down
+      setCoverImageIndex(prev => Math.max(0, prev - 1));
+    }
   };
 
   const handleAmenityToggle = (name: string) => {
@@ -151,11 +169,13 @@ const HotelAdminHotelEdit = () => {
       // Combine existing and new images
       const allImages = [...images, ...uploadedImageUrls];
       
-      // Mark first image as cover
+      // Create images with is_cover flag based on selected cover index
       const imagesWithCover = allImages.map((url, index) => ({
         image_url: url,
-        is_cover: index === 0
+        is_cover: index === coverImageIndex
       }));
+
+      console.log("Submitting hotel update with cover index:", coverImageIndex, "Total images:", allImages.length, "Images:", imagesWithCover.map(img => ({ image_url: img.image_url.substring(0, 50), is_cover: img.is_cover })));
 
       const response = await apiPut(`/hotels/${hotel.hotel_id}`, {
         details: {
@@ -168,6 +188,8 @@ const HotelAdminHotelEdit = () => {
       });
 
       if (response.success === false) throw new Error(response.message || "Failed to update hotel");
+
+      console.log("Hotel update response:", response.data);
 
       // Clear uploaded files after successful submission
       setImageFiles([]);
@@ -226,19 +248,33 @@ const HotelAdminHotelEdit = () => {
           {/* Existing Images */}
           {images.length > 0 && (
             <div>
-              <p className="text-sm font-medium mb-2">Current Images ({images.length}/8)</p>
+              <p className="text-sm font-medium mb-2">Current Images ({images.length}/8) - Click to set as cover</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {images.map((url, i) => (
-                  <div key={`${url}-${i}`} className="relative border rounded-lg overflow-hidden group">
+                  <div 
+                    key={`${url}-${i}`} 
+                    className={`relative border-2 rounded-lg overflow-hidden group cursor-pointer transition-all ${
+                      coverImageIndex === i 
+                        ? 'border-green-500 ring-2 ring-green-500' 
+                        : 'border-gray-200 hover:border-green-400'
+                    }`}
+                    onClick={() => setCoverImageIndex(i)}
+                  >
                     <img src={url} alt={`hotel image ${i + 1}`} className="h-20 w-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      {i === 0 && (
-                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">Cover</span>
+                      {coverImageIndex === i && (
+                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded font-semibold">✓ Cover</span>
+                      )}
+                      {coverImageIndex !== i && (
+                        <span className="bg-blue-500/80 text-white text-xs px-2 py-1 rounded">Click to set</span>
                       )}
                     </div>
                     <button
                       type="button"
-                      onClick={() => removeExistingImage(i)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeExistingImage(i);
+                      }}
                       className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500/90 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -252,23 +288,44 @@ const HotelAdminHotelEdit = () => {
           {/* New Images to Upload */}
           {imageFiles.length > 0 && (
             <div>
-              <p className="text-sm font-medium mb-2">New Images to Upload ({imageFiles.length})</p>
+              <p className="text-sm font-medium mb-2">New Images to Upload ({imageFiles.length}) - Click to set as cover</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {imageFiles.map((file, i) => (
-                  <div key={`${file.name}-${i}`} className="relative border-2 border-primary/30 rounded-lg overflow-hidden group bg-primary/5">
-                    <img src={URL.createObjectURL(file)} alt={file.name} className="h-20 w-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <span className="text-white text-xs text-center px-1">New</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeImageFile(i)}
-                      className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500/90"
+                {imageFiles.map((file, i) => {
+                  const newImageIndex = images.length + i;
+                  const isCover = coverImageIndex === newImageIndex;
+                  return (
+                    <div 
+                      key={`${file.name}-${i}`} 
+                      className={`relative border-2 rounded-lg overflow-hidden group bg-primary/5 cursor-pointer transition-all ${
+                        isCover
+                          ? 'border-green-500 ring-2 ring-green-500'
+                          : 'border-primary/30 hover:border-green-400'
+                      }`}
+                      onClick={() => setCoverImageIndex(newImageIndex)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <img src={URL.createObjectURL(file)} alt={file.name} className="h-20 w-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                        {isCover && (
+                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded font-semibold">✓ Cover</span>
+                        )}
+                        {!isCover && (
+                          <span className="bg-blue-500/80 text-white text-xs px-2 py-1 rounded">Click to set</span>
+                        )}
+                        <span className="text-white text-xs">New</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImageFile(i);
+                        }}
+                        className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-500/90 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

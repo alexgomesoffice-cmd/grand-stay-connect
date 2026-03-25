@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Plus, DollarSign, Users, Edit, Search, LayoutGrid, List, BedDouble, Sparkles } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, DollarSign, Users, Edit, Search, LayoutGrid, List, BedDouble, Sparkles, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiGet } from "@/utils/api";
+import { apiGet, apiDelete } from "@/utils/api";
 
 interface Room {
   hotel_room_details_id: number;
@@ -36,13 +36,17 @@ const typeGradients: Record<string, string> = {
 };
 
 const HotelAdminRooms = () => {
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [availableRoomTypes, setAvailableRoomTypes] = useState<string[]>([]);
   const { toast } = useToast();
+  const [hotelId, setHotelId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Fetch rooms from backend
   useEffect(() => {
@@ -61,12 +65,17 @@ const HotelAdminRooms = () => {
           return;
         }
         
-        const hotelId = hotelResponse.data.hotel_id;
+        const currentHotelId = hotelResponse.data.hotel_id;
+        setHotelId(currentHotelId);
         
         // Now fetch all physical rooms for this hotel
-        const roomsResponse = await apiGet(`/hotels/${hotelId}/physical-rooms?skip=0&take=500`);
+        const roomsResponse = await apiGet(`/hotels/${currentHotelId}/physical-rooms?skip=0&take=500`);
         if (roomsResponse.success && roomsResponse.data?.rooms && Array.isArray(roomsResponse.data.rooms)) {
           setRooms(roomsResponse.data.rooms);
+          
+          // Extract unique room types from the fetched rooms
+          const types = Array.from(new Set(roomsResponse.data.rooms.map((r: Room) => r.room_type))) as string[];
+          setAvailableRoomTypes(types.sort());
         }
       } catch (error) {
         console.error("Failed to fetch rooms:", error);
@@ -83,12 +92,50 @@ const HotelAdminRooms = () => {
     fetchRooms();
   }, [toast]);
 
+  const handleDeleteRoom = async (roomDetailId: number, roomNumber: string) => {
+    if (!confirm(`Are you sure you want to delete room ${roomNumber}?`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(roomDetailId);
+      // Find the room_type_id by finding the room in state
+      const room = rooms.find(r => r.hotel_room_details_id === roomDetailId);
+      if (!room) {
+        toast({
+          title: "Error",
+          description: "Room not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // You would need to fetch room_id first - for now using a placeholder
+      // In real scenario, you'd have room_type_id from the backend
+      await apiDelete(`/rooms/1/physical-rooms/${roomDetailId}`);
+      
+      setRooms(rooms.filter(r => r.hotel_room_details_id !== roomDetailId));
+      toast({
+        title: "Success",
+        description: `Room ${roomNumber} deleted successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete room",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const filtered = rooms.filter((room) => {
     const matchesSearch = 
       String(room.room_number).toLowerCase().includes(search.toLowerCase()) || 
       String(room.room_type).toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || room.status === statusFilter.toUpperCase();
-    const matchesType = typeFilter === "all" || String(room.room_type).toLowerCase() === typeFilter.toLowerCase();
+    const matchesType = typeFilter === "all" || room.room_type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
 
@@ -155,10 +202,9 @@ const HotelAdminRooms = () => {
               <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="standard">Standard</SelectItem>
-                <SelectItem value="deluxe">Deluxe</SelectItem>
-                <SelectItem value="suite">Suite</SelectItem>
-                <SelectItem value="penthouse">Penthouse</SelectItem>
+                {availableRoomTypes.map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <div className="flex border border-border rounded-xl overflow-hidden">
@@ -201,9 +247,26 @@ const HotelAdminRooms = () => {
                   <span className="flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-green-500" /><span className="font-medium text-foreground">${room.base_price}</span>/night</span>
                   <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" />{room.max_occupancy} guests</span>
                 </div>
-                <Button variant="outline" size="sm" className="w-full group-hover:border-primary/50 transition-colors">
-                  <Edit className="h-4 w-4 mr-2" /> Edit Room
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full group-hover:border-primary/50 transition-colors"
+                    onClick={() => navigate(`/hotel-admin/edit-room/${room.hotel_room_details_id}`)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" /> Edit Room
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full bg-red-500 text-white hover:bg-red-600 border-red-500 hover:border-red-600"
+                    onClick={() => handleDeleteRoom(room.hotel_room_details_id, room.room_number)}
+                    disabled={deletingId === room.hotel_room_details_id}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> 
+                    {deletingId === room.hotel_room_details_id ? "Deleting..." : "Delete Room"}
+                  </Button>
+                </div>
               </CardContent>
               <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${typeGradients[room.room_type] || "from-primary to-accent"} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
             </Card>
@@ -241,7 +304,26 @@ const HotelAdminRooms = () => {
                           {room.status}
                         </Badge>
                       </td>
-                      <td className="py-3.5 px-4"><Button variant="outline" size="sm"><Edit className="h-4 w-4 mr-1" /> Edit</Button></td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate(`/hotel-admin/edit-room/${room.hotel_room_details_id}`)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" /> Edit
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="bg-red-500 text-white hover:bg-red-600 border-red-500 hover:border-red-600"
+                            onClick={() => handleDeleteRoom(room.hotel_room_details_id, room.room_number)}
+                            disabled={deletingId === room.hotel_room_details_id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

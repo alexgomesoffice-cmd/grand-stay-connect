@@ -27,7 +27,7 @@ export interface HotelResponse {
   approval_status: string;
   created_at: string;
   updated_at: string;
-  hotel_images?: { image_url: string }[];
+  hotel_images?: { image_url: string; is_cover?: boolean }[];
   hotel_amenities?: { amenity: { name: string } }[];
 }
 

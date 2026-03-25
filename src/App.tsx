@@ -44,6 +44,7 @@ import HotelAdminLayout from "./components/hotel-admin/HotelAdminLayout";
 import HotelAdminOverview from "./pages/hotel-admin/HotelAdminOverview";
 import HotelAdminRooms from "./pages/hotel-admin/HotelAdminRooms";
 import HotelAdminAddRoom from "./pages/hotel-admin/HotelAdminAddRoom";
+import HotelAdminEditRoom from "./pages/hotel-admin/HotelAdminEditRoom";
 import HotelAdminReservations from "./pages/hotel-admin/HotelAdminReservations";
 import HotelAdminReservationDetail from "./pages/hotel-admin/HotelAdminReservationDetail";
 import HotelAdminAddSubAdmin from "./pages/hotel-admin/HotelAdminAddSubAdmin";
@@ -104,6 +105,7 @@ const App = () => (
               <Route index element={<HotelAdminOverview />} />
               <Route path="rooms" element={<HotelAdminRooms />} />
               <Route path="add-room" element={<HotelAdminAddRoom />} />
+              <Route path="edit-room/:roomDetailsId" element={<HotelAdminEditRoom />} />
               <Route path="add-sub-admin" element={<HotelAdminAddSubAdmin />} />
               <Route path="update-hotel" element={<HotelAdminHotelEdit />} />
               <Route path="reservations" element={<HotelAdminReservations />} />
