@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, Plus, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiPost } from "@/utils/api";
+import { apiPost, apiGet } from "@/utils/api";
 
 interface FormData {
   name: string;
@@ -29,10 +29,11 @@ interface FormData {
   admin_nid: string;
 }
 
-const bangladeshCities = [
-  "Dhaka", "Chittagong", "Khulna", "Rajshahi", "Sylhet",
-  "Rangpur", "Barisal", "Comilla", "Gazipur", "Narayanganj",
-];
+interface City {
+  id: number;
+  name: string;
+  image_url: string | null;
+}
 
 const AdminAddHotel = () => {
   const navigate = useNavigate();
@@ -41,10 +42,12 @@ const AdminAddHotel = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(true);
   
   const [formData, setFormData] = useState<FormData>({
     name: "",
-    city: "Dhaka",
+    city: "",
     address: "",
     zipCode: "",
     hotel_type: "hotel",
@@ -64,7 +67,35 @@ const AdminAddHotel = () => {
 
   useEffect(() => {
     setIsLoaded(true);
+    fetchCities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchCities = useCallback(async () => {
+    try {
+      setCitiesLoading(true);
+      const response = await apiGet("/cities");
+      if (response.success && response.data) {
+        setCities(response.data);
+        // Set default city to first city in list
+        if (response.data.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            city: response.data[0].name,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch cities:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load cities",
+        variant: "destructive",
+      });
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, [toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -294,14 +325,15 @@ const AdminAddHotel = () => {
                 <Select
                   value={formData.city}
                   onValueChange={(value) => handleSelectChange("city", value)}
+                  disabled={citiesLoading}
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue />
+                    <SelectValue placeholder={citiesLoading ? "Loading cities..." : "Select a city"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {bangladeshCities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
+                    {cities.map((city) => (
+                      <SelectItem key={city.id} value={city.name}>
+                        {city.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
