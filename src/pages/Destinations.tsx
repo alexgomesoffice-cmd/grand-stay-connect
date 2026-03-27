@@ -28,7 +28,16 @@ const Destinations = () => {
       setIsLoading(true);
       const response = await apiGet("/cities/destinations");
       if (response.success && response.data) {
-        setDestinations(response.data);
+        // Ensure image URLs are absolute paths
+        const citiesWithAbsoluteUrls = response.data.map((city: City) => ({
+          ...city,
+          image_url: city.image_url 
+            ? (city.image_url.startsWith('http') 
+              ? city.image_url 
+              : `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/${city.image_url}`)
+            : null,
+        }));
+        setDestinations(citiesWithAbsoluteUrls);
       }
     } catch (error) {
       console.error("Failed to fetch destinations:", error);
