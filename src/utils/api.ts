@@ -200,3 +200,25 @@ export function getCurrentUser() {
   const userStr = localStorage.getItem("user");
   return userStr ? JSON.parse(userStr) : null;
 }
+
+/**
+ * Convert relative image URL to absolute URL
+ * 
+ * @example
+ * getImageUrl("Cities/dhaka.png") => "http://localhost:3000/Cities/dhaka.png"
+ * getImageUrl("https://example.com/image.jpg") => "https://example.com/image.jpg" (unchanged)
+ */
+export function getImageUrl(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  
+  // If it's already an absolute URL, return as-is
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+  
+  // Remove /api from base URL to get the server base URL
+  const serverBaseUrl = API_BASE_URL.replace("/api", "");
+  
+  // Prepend server base URL to relative paths
+  return `${serverBaseUrl}/${imageUrl}`;
+}

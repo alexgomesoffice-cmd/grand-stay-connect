@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { apiGet } from "@/utils/api";
+import { apiGet, getImageUrl } from "@/utils/api";
 
 interface City {
   id: number;
@@ -93,7 +93,7 @@ const DestinationsSection = () => {
                 <div className="aspect-[4/5] overflow-hidden">
                   {destination.image_url ? (
                     <img
-                      src={destination.image_url}
+                      src={getImageUrl(destination.image_url) || ""}
                       alt={destination.name}
                       className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110"
                     />
