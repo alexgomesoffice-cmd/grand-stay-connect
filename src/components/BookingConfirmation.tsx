@@ -49,7 +49,6 @@ const BookingConfirmation = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState<"details" | "payment" | "confirmed">("details");
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isReserving, setIsReserving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [guestInfo, setGuestInfo] = useState({
@@ -68,56 +67,98 @@ const BookingConfirmation = ({
   const grandTotal = roomTotal + cleaningFee + serviceFee + taxes;
 
   const handleConfirmBooking = async () => {
-    setIsProcessing(true);
-    // Simulate payment processing
+    setIsReserving(true);
+    // Simulate payment processing - placeholder for future payment system
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsProcessing(false);
+    setIsReserving(false);
     setStep("confirmed");
   };
 
-  const handleReserveBooking = () => {
+  const handleReserveBooking = async () => {
     try {
       setError(null);
       const user = getLoggedInUser();
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
 
-      const booking = {
-        id: `BK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
-        hotel: hotel.name,
-        location: hotel.location,
-        room: room.name,
-        checkIn: format(checkIn, "yyyy-MM-dd"),
-        checkOut: format(checkOut, "yyyy-MM-dd"),
-        amount: `$${grandTotal}`,
-        status: "reserved",
-        bookedBy: user?.name || `${guestInfo.firstName} ${guestInfo.lastName}`,
-        email: guestInfo.email,
-        guests,
-        reservedAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        specialRequests: guestInfo.specialRequests,
-        phone: guestInfo.phone,
-      };
+      if (!user) {
+        setError("You must be logged in to make a reservation");
+        toast({
+          title: "Error",
+          description: "Please log in to make a reservation",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const existingRaw = localStorage.getItem("stayvista-bookings");
-      const existingBookings = existingRaw ? JSON.parse(existingRaw) : [];
-      localStorage.setItem("stayvista-bookings", JSON.stringify([booking, ...existingBookings]));
+      setIsReserving(true);
+
+      console.log("[BOOKING] Attempting to create booking with data:", {
+        hotel_id: hotel.id,
+        check_in: format(checkIn, "yyyy-MM-dd"),
+        check_out: format(checkOut, "yyyy-MM-dd"),
+        room_id: room.id,
+      });
+
+      // Call backend API to create booking
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/bookings/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({
+          hotel_id: hotel.id || 1,
+          check_in: format(checkIn, "yyyy-MM-dd"),
+          check_out: format(checkOut, "yyyy-MM-dd"),
+          rooms: [
+            {
+              hotel_room_id: room.id || 1,
+              quantity: 1,
+            },
+          ],
+          special_request: guestInfo.specialRequests || null,
+        }),
+      });
+
+      console.log("[BOOKING] Response status:", response.status, response.statusText);
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        let errorData;
+        
+        if (contentType && contentType.includes("application/json")) {
+          errorData = await response.json();
+        } else {
+          const text = await response.text();
+          console.error("[BOOKING] Non-JSON response:", text);
+          throw new Error(`Server error (${response.status}): ${response.statusText}`);
+        }
+        
+        throw new Error(errorData.message || "Failed to create booking");
+      }
+
+      const bookingData = await response.json();
+
+      console.log("[BOOKING] Booking created successfully:", bookingData.data);
 
       toast({
         title: "Success",
         description: "Booking reserved successfully!",
       });
 
-      setIsReserving(true);
+      // Show confirmation screen
+      setStep("confirmed");
+
+      // After 2 seconds, close and navigate
       setTimeout(() => {
         setIsReserving(false);
         handleClose();
         navigate("/my-bookings");
-      }, 1400);
+      }, 2000);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to reserve booking";
+      console.error("[BOOKING] Error:", errorMsg);
       setError(errorMsg);
+      setIsReserving(false);
       toast({
         title: "Error",
         description: errorMsg,
@@ -452,9 +493,9 @@ const BookingConfirmation = ({
                     size="lg"
                     className="flex-1"
                     onClick={handleConfirmBooking}
-                    disabled={isProcessing}
+                    disabled={isReserving}
                   >
-                    {isProcessing ? (
+                    {isReserving ? (
                       <span className="flex items-center gap-2">
                         <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                         Processing...

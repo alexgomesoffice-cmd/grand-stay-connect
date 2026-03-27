@@ -13,9 +13,15 @@ export const getLoggedInUser = () => {
   }
 };
 
-export const setLoggedInUser = (user: { name: string; email: string } | null) => {
+export const setLoggedInUser = (user: { id?: number; end_user_id?: number; name: string; email: string } | null) => {
   if (user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    // Normalize user object: use end_user_id as id if id is not provided
+    const normalizedUser = {
+      id: user.id || user.end_user_id,
+      name: user.name,
+      email: user.email,
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
   } else {
     localStorage.removeItem(USER_KEY);
   }

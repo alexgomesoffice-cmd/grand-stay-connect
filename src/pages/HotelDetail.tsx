@@ -36,6 +36,7 @@ import Footer from "@/components/Footer";
 import BookingConfirmation from "@/components/BookingConfirmation";
 import { cn } from "@/lib/utils";
 import { apiGet } from "@/utils/api";
+import { getLoggedInUser } from "@/utils/auth";
 
 interface HotelImage {
   image_url: string;
@@ -322,8 +323,25 @@ const HotelDetail = () => {
 
   const handleBookNow = () => {
     if (!selectedRoom) {
+      console.log("[HOTEL DETAIL] No room selected");
       return; // Don't open modal without a room selected
     }
+
+    // Check if user is logged in
+    const user = getLoggedInUser();
+    console.log("[HOTEL DETAIL] User check:", user ? `Logged in as ${user.email}` : "Not logged in");
+    
+    if (!user) {
+      console.log("[HOTEL DETAIL] Redirecting to login with return URL");
+      // Redirect to login with return URL
+      const hotelId = hotel.id;
+      localStorage.setItem("returnUrl", `/hotel/${hotelId}`);
+      navigate("/login");
+      return;
+    }
+
+    // User is logged in, open the booking modal
+    console.log("[HOTEL DETAIL] Opening booking modal");
     setShowBookingModal(true);
   };
 
