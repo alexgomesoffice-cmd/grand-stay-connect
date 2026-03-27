@@ -71,6 +71,11 @@ export async function apiRequest(
 
     if (!response.ok) {
       const message = (data && (data.message || data.error?.message)) || `API request failed with status ${response.status}`;
+      // Log full error details for debugging
+      if (data?.error?.details) {
+        console.error(`API Validation Error Details [${method} ${endpoint}]:`, data.error.details);
+      }
+      console.error(`Full Error Response [${method} ${endpoint}]:`, JSON.stringify(data, null, 2));
       throw new Error(message);
     }
 

@@ -11,7 +11,8 @@ import {
   MapPin,
   Star,
   Sparkles,
-  PartyPopper
+  PartyPopper,
+  AlertCircle
 } from "lucide-react";
 import {
   Dialog,
@@ -24,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getLoggedInUser } from "@/utils/auth";
 import { Hotel, Room } from "@/data/hotels";
+import { useToast } from "@/hooks/use-toast";
 
 interface BookingConfirmationProps {
   isOpen: boolean;
@@ -45,9 +47,11 @@ const BookingConfirmation = ({
   guests,
 }: BookingConfirmationProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [step, setStep] = useState<"details" | "payment" | "confirmed">("details");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReserving, setIsReserving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [guestInfo, setGuestInfo] = useState({
     firstName: "",
     lastName: "",
@@ -72,42 +76,59 @@ const BookingConfirmation = ({
   };
 
   const handleReserveBooking = () => {
-    const user = getLoggedInUser();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+    try {
+      setError(null);
+      const user = getLoggedInUser();
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
 
-    const booking = {
-      id: `BK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
-      hotel: hotel.name,
-      location: hotel.location,
-      room: room.name,
-      checkIn: format(checkIn, "yyyy-MM-dd"),
-      checkOut: format(checkOut, "yyyy-MM-dd"),
-      amount: `$${grandTotal}`,
-      status: "reserved",
-      bookedBy: user?.name || `${guestInfo.firstName} ${guestInfo.lastName}`,
-      email: guestInfo.email,
-      guests,
-      reservedAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      specialRequests: guestInfo.specialRequests,
-      phone: guestInfo.phone,
-    };
+      const booking = {
+        id: `BK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+        hotel: hotel.name,
+        location: hotel.location,
+        room: room.name,
+        checkIn: format(checkIn, "yyyy-MM-dd"),
+        checkOut: format(checkOut, "yyyy-MM-dd"),
+        amount: `$${grandTotal}`,
+        status: "reserved",
+        bookedBy: user?.name || `${guestInfo.firstName} ${guestInfo.lastName}`,
+        email: guestInfo.email,
+        guests,
+        reservedAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        specialRequests: guestInfo.specialRequests,
+        phone: guestInfo.phone,
+      };
 
-    const existingRaw = localStorage.getItem("stayvista-bookings");
-    const existingBookings = existingRaw ? JSON.parse(existingRaw) : [];
-    localStorage.setItem("stayvista-bookings", JSON.stringify([booking, ...existingBookings]));
+      const existingRaw = localStorage.getItem("stayvista-bookings");
+      const existingBookings = existingRaw ? JSON.parse(existingRaw) : [];
+      localStorage.setItem("stayvista-bookings", JSON.stringify([booking, ...existingBookings]));
 
-    setIsReserving(true);
-    setTimeout(() => {
-      setIsReserving(false);
-      handleClose();
-      navigate("/my-bookings");
-    }, 1400);
+      toast({
+        title: "Success",
+        description: "Booking reserved successfully!",
+      });
+
+      setIsReserving(true);
+      setTimeout(() => {
+        setIsReserving(false);
+        handleClose();
+        navigate("/my-bookings");
+      }, 1400);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to reserve booking";
+      setError(errorMsg);
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleClose = () => {
     setStep("details");
+    setError(null);
     setGuestInfo({
       firstName: "",
       lastName: "",
@@ -202,6 +223,14 @@ const BookingConfirmation = ({
                 )}
               </DialogTitle>
             </DialogHeader>
+
+            {/* Error Display */}
+            {error && (
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive animate-fade-in">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            )}
 
             {/* Progress Steps */}
             <div className="flex items-center justify-center gap-2 mb-6">

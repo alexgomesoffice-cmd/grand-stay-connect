@@ -254,6 +254,18 @@ const HotelAdminAddRoom = () => {
         throw new Error("Hotel ID not available. Please refresh and try again.");
       }
 
+      // Convert default photos to base64
+      const defaultPhotoUrls = await Promise.all(
+        defaultPhotos.map(file =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsDataURL(file);
+          })
+        )
+      );
+
       const roomNumbersData = physicalRooms.map((room) => ({
         room_number: room.room_number,
         bed_type: room.bed_type,
@@ -268,9 +280,11 @@ const HotelAdminAddRoom = () => {
           base_price: parseFloat(roomTypeData.base_price),
           max_occupancy: parseInt(roomTypeData.max_occupancy),
           description: roomTypeData.description,
-          room_size: roomTypeData.room_size
+          room_size: roomTypeData.room_size,
+          amenities: selectedAmenities // Include selected amenities
         },
-        room_numbers: roomNumbersData
+        room_numbers: roomNumbersData,
+        images: defaultPhotoUrls // Include converted room type images
       };
 
       const response = await apiPost(`/rooms/bulk-create?hotel_id=${hotelId}`, payload);

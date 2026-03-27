@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Upload, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,20 @@ interface RoomDetail {
   room_size?: string;
 }
 
+interface RoomTypeWithDetails {
+  room_type: string;
+  room_amenities?: Array<{
+    amenity: {
+      id: number;
+      name: string;
+    };
+  }>;
+  hotel_room_images?: Array<{
+    image_url: string;
+    is_cover: boolean;
+  }>;
+}
+
 interface AmenityResponse {
   id: number;
   name: string;
@@ -36,10 +50,12 @@ const HotelAdminEditRoom = () => {
   const navigate = useNavigate();
   const { roomDetailsId } = useParams<{ roomDetailsId: string }>();
   const { toast } = useToast();
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hotelId, setHotelId] = useState<number | null>(null);
+  const [hotelRoomId, setHotelRoomId] = useState<number | null>(null);
   const [availableAmenities, setAvailableAmenities] = useState<{ id: string; name: string }[]>([]);
   const [availableRoomTypes, setAvailableRoomTypes] = useState<string[]>([]);
 
@@ -68,6 +84,7 @@ const HotelAdminEditRoom = () => {
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [uploadedPhotos, setUploadedPhotos] = useState<File[]>([]);
   const [previewPhotos, setPreviewPhotos] = useState<string[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
 
   // Fetch room details
   useEffect(() => {
@@ -102,6 +119,42 @@ const HotelAdminEditRoom = () => {
         // Extract unique room types from all rooms for the dropdown
         const types = Array.from(new Set(roomsResponse.data.rooms.map((r: RoomDetail) => r.room_type))) as string[];
         setAvailableRoomTypes(types.sort());
+
+        // Fetch room type details to get amenities and images
+        const roomTypesResponse = await apiGet(`/rooms?hotel_id=${hotelResponse.data.hotel_id}&skip=0&take=100`);
+        
+        if (roomTypesResponse.success && roomTypesResponse.data?.rooms) {
+          const roomTypeData = roomTypesResponse.data.rooms.find(
+            (r: RoomTypeWithDetails & { hotel_room_id?: number }) => r.room_type === room.room_type
+          ) as RoomTypeWithDetails & { hotel_room_id?: number } | undefined;
+
+          if (roomTypeData) {
+            // Store the hotel_room_id for later use in updates
+            if (roomTypeData.hotel_room_id) {
+              setHotelRoomId(roomTypeData.hotel_room_id);
+            }
+
+            // Set existing amenities
+            if (roomTypeData.room_amenities && roomTypeData.room_amenities.length > 0) {
+              const amenityIds = roomTypeData.room_amenities.map((ra) => String(ra.amenity.id));
+              console.log("Loaded amenity IDs from backend:", amenityIds);
+              console.log("Full amenities data:", roomTypeData.room_amenities);
+              setSelectedAmenities(amenityIds);
+            } else {
+              console.log("No amenities found for this room");
+            }
+
+            // Set existing images
+            if (roomTypeData.hotel_room_images && roomTypeData.hotel_room_images.length > 0) {
+              const imageUrls = roomTypeData.hotel_room_images.map((img) => img.image_url);
+              console.log("Loaded images count:", imageUrls.length);
+              setExistingPhotos(imageUrls);
+              setPreviewPhotos(imageUrls);
+            } else {
+              console.log("No images found for this room");
+            }
+          }
+        }
 
         setRoomData(room);
         setFormData({
@@ -151,6 +204,7 @@ const HotelAdminEditRoom = () => {
             id: String(amenity.id),
             name: amenity.name
           }));
+          console.log("Available amenities loaded:", mappedAmenities);
           setAvailableAmenities(mappedAmenities);
         }
       } catch (error) {
@@ -196,8 +250,16 @@ const HotelAdminEditRoom = () => {
   };
 
   const removePhoto = (index: number) => {
-    setUploadedPhotos((prev) => prev.filter((_, i) => i !== index));
-    setPreviewPhotos((prev) => prev.filter((_, i) => i !== index));
+    // If it's an existing photo, remove from existing photos
+    if (index < existingPhotos.length) {
+      setExistingPhotos((prev) => prev.filter((_, i) => i !== index));
+      setPreviewPhotos((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      // Otherwise, remove from uploaded photos
+      const uploadIndex = index - existingPhotos.length;
+      setUploadedPhotos((prev) => prev.filter((_, i) => i !== uploadIndex));
+      setPreviewPhotos((prev) => prev.filter((_, i) => i !== index));
+    }
   };
 
   const toggleAmenity = (amenityId: string) => {
@@ -236,30 +298,65 @@ const HotelAdminEditRoom = () => {
         throw new Error("Room data not available");
       }
 
-      const payload = {
-        // Physical room details
+      if (!hotelRoomId) {
+        throw new Error("Hotel room ID not available");
+      }
+
+      // Convert new uploaded photos to base64
+      const newImageUrls = await Promise.all(
+        uploadedPhotos.map(file =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsDataURL(file);
+          })
+        )
+      );
+
+      // Combine existing images with new ones
+      const allImages = [...existingPhotos, ...newImageUrls];
+
+      // API Call 1: Update room type with amenities and images
+      const roomTypePayload = {
+        room_type: roomTypeFormData.room_type,
+        base_price: parseFloat(roomTypeFormData.base_price),
+        description: roomTypeFormData.description,
+        room_size: roomTypeFormData.room_size,
+        amenities: selectedAmenities, // ✅ Include amenities
+        images: allImages // ✅ Include all images
+      };
+
+      console.log("Submitting room update with:", {
+        amenities: selectedAmenities,
+        imageCount: allImages.length,
+        existingImagesCount: existingPhotos.length,
+        newImagesCount: newImageUrls.length
+      });
+
+      const roomTypeResponse = await apiPut(`/rooms/${hotelRoomId}`, roomTypePayload);
+
+      if (!roomTypeResponse.success) {
+        throw new Error(roomTypeResponse.message || "Failed to update room type");
+      }
+
+      // API Call 2: Update physical room details
+      const physicalRoomPayload = {
         room_number: formData.room_number,
         bed_type: formData.bed_type,
         max_occupancy: parseInt(formData.max_occupancy),
         smoking_allowed: formData.smoking_allowed,
         pet_allowed: formData.pet_allowed,
-        status: formData.status,
-        // Room type details
-        room_type: roomTypeFormData.room_type,
-        base_price: parseFloat(roomTypeFormData.base_price),
-        description: roomTypeFormData.description,
-        room_size: roomTypeFormData.room_size
+        status: formData.status
       };
 
-      // Make PUT request to update the room with all details
-      // The backend will handle duplicate detection for room_type + room_number
-      const response = await apiPut(
-        `/rooms/1/physical-rooms/${roomData.hotel_room_details_id}`,
-        payload
+      const physicalRoomResponse = await apiPut(
+        `/rooms/${hotelRoomId}/physical-rooms/${roomData.hotel_room_details_id}`,
+        physicalRoomPayload
       );
 
-      if (!response.success) {
-        throw new Error(response.message || "Failed to update room");
+      if (!physicalRoomResponse.success) {
+        throw new Error(physicalRoomResponse.message || "Failed to update physical room");
       }
 
       toast({
@@ -518,41 +615,62 @@ const HotelAdminEditRoom = () => {
                   <p className="text-xs text-muted-foreground">Supports JPG, PNG, and WebP</p>
                 </div>
                 <input
+                  ref={photoInputRef}
                   type="file"
                   multiple
                   accept="image/*"
                   onChange={handlePhotoInputChange}
                   className="hidden"
-                  id="photo-input"
                 />
-                <Label htmlFor="photo-input" className="cursor-pointer">
-                  <Button type="button" variant="outline" size="sm">
-                    Browse Files
-                  </Button>
-                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  Browse Files
+                </Button>
               </div>
             </div>
 
             {previewPhotos.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {previewPhotos.map((photo, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={photo}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removePhoto(index)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
+              <div>
+                <p className="text-sm font-medium mb-3">
+                  Photos ({previewPhotos.length}) - {existingPhotos.length} existing, {uploadedPhotos.length} new
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {previewPhotos.map((photo, index) => {
+                    const isExisting = index < existingPhotos.length;
+                    return (
+                      <div key={index} className="relative group">
+                        <img
+                          src={photo}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        {isExisting && (
+                          <span className="absolute top-1 left-1 bg-green-500/90 text-white text-xs px-2 py-1 rounded">
+                            Existing
+                          </span>
+                        )}
+                        {!isExisting && (
+                          <span className="absolute top-1 left-1 bg-blue-500/90 text-white text-xs px-2 py-1 rounded">
+                            New
+                          </span>
+                        )}
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </CardContent>

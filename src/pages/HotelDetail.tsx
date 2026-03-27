@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format, addDays, differenceInDays } from "date-fns";
 import { 
@@ -20,7 +20,8 @@ import {
   Clock,
   ChevronRight,
   Share2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +34,90 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BookingConfirmation from "@/components/BookingConfirmation";
-import { getHotelById, Room } from "@/data/hotels";
 import { cn } from "@/lib/utils";
+import { apiGet } from "@/utils/api";
+
+interface HotelImage {
+  image_url: string;
+  is_cover: boolean;
+}
+
+interface HotelDetails {
+  star_rating?: string | number;
+  description?: string;
+}
+
+interface Amenity {
+  id?: number;
+  name: string;
+}
+
+interface BackendHotelAmenity {
+  amenity: Amenity;
+}
+
+interface BackendHotel {
+  hotel_id: number;
+  name: string;
+  city: string;
+  hotel_type: string;
+  email: string;
+  approval_status: string;
+  created_at: string;
+  hotel_details?: HotelDetails;
+  hotel_images?: HotelImage[];
+  hotel_amenities?: BackendHotelAmenity[];
+}
+
+interface BackendRoomType {
+  hotel_room_id: number;
+  room_type: string;
+  base_price: number | string;
+  description?: string;
+  room_size?: string;
+  hotel_room_images?: Array<{
+    image_url: string;
+    is_cover: boolean;
+  }>;
+  room_amenities?: Array<{
+    amenity: {
+      id?: number;
+      name: string;
+    };
+  }>;
+  hotel_room_details?: Array<{
+    max_occupancy?: number;
+    bed_type?: string;
+    room_size?: string;
+  }>;
+}
+
+interface Room {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  capacity: number;
+  beds: string;
+  size: number;
+  amenities: string[];
+  image?: string | null;
+}
+
+interface Hotel {
+  id: number;
+  name: string;
+  location: string;
+  image: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  tags: string[];
+  description: string;
+  hotelImages?: string[];
+  amenities: string[];
+  rooms: Room[];
+}
 
 const amenityIcons: Record<string, typeof Wifi> = {
   "Free WiFi": Wifi,
@@ -54,8 +137,144 @@ const HotelDetail = () => {
   const [guests, setGuests] = useState(2);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const hotel = getHotelById(Number(id));
+  // Fetch hotel data from backend
+  useEffect(() => {
+    const fetchHotelData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        if (!id) {
+          setError("Hotel ID not found");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch hotel details and room types in parallel
+        const [hotelResponse, roomsResponse] = await Promise.all([
+          apiGet(`/hotels/${id}`),
+          apiGet(`/rooms?hotel_id=${id}&skip=0&take=100`)
+        ]);
+        
+        if (hotelResponse.success && hotelResponse.data) {
+          const backendHotel: BackendHotel = hotelResponse.data;
+          
+          // Get cover image or first image
+          const getCoverImage = (): string => {
+            const images = backendHotel.hotel_images || [];
+            const coverImg = images.find(img => img.is_cover);
+            if (coverImg) return coverImg.image_url;
+            if (images.length > 0) return images[0].image_url;
+            return "https://via.placeholder.com/400x300?text=Hotel+Image";
+          };
+
+          // Transform room types from backend
+          const transformedRooms: Room[] = [];
+          if (roomsResponse.success && roomsResponse.data?.rooms) {
+            roomsResponse.data.rooms.forEach((backendRoom: BackendRoomType, index: number) => {
+              // Get room cover image
+              const roomImages = backendRoom.hotel_room_images || [];
+              const coverRoomImg = roomImages.find(img => img.is_cover);
+              const roomImageUrl = coverRoomImg?.image_url || (roomImages.length > 0 ? roomImages[0].image_url : null);
+
+              // Get room details from hotel_room_details array (if available)
+              const roomDetail = backendRoom.hotel_room_details?.[0];
+              const capacity = roomDetail?.max_occupancy || 2;
+              const beds = roomDetail?.bed_type || "1 Queen Bed";
+              const roomSize = roomDetail?.room_size ? parseInt(roomDetail.room_size) : (backendRoom.room_size ? parseInt(backendRoom.room_size) : 30);
+
+              // Get room amenities from the room_amenities array - ONLY use room amenities
+              const roomAmenities = backendRoom.room_amenities?.map(ra => ra.amenity.name) || [];
+              
+              // Debug: log the amenities to see what we're getting
+              console.log(`Room "${backendRoom.room_type}" amenities:`, roomAmenities, "room_amenities object:", backendRoom.room_amenities);
+
+              const room: Room = {
+                id: backendRoom.hotel_room_id,
+                name: backendRoom.room_type,
+                description: backendRoom.description || "",
+                price: Number(backendRoom.base_price) || 150,
+                capacity,
+                beds,
+                size: roomSize,
+                amenities: roomAmenities, // Use ONLY room amenities, even if empty
+                image: roomImageUrl,
+              };
+
+              transformedRooms.push(room);
+            });
+          }
+
+          // If no rooms from API, use defaults
+          const finalRooms = transformedRooms.length > 0 ? transformedRooms : [
+            {
+              id: 1,
+              name: "Standard Room",
+              description: "Comfortable room with modern amenities",
+              price: 150,
+              capacity: 2,
+              beds: "1 Queen Bed",
+              size: 30,
+              amenities: ["WiFi", "TV", "Air Conditioning", "Mini Bar"]
+            },
+            {
+              id: 2,
+              name: "Deluxe Room",
+              description: "Spacious room with premium furnishings",
+              price: 250,
+              capacity: 3,
+              beds: "1 King Bed + Sofa",
+              size: 45,
+              amenities: ["WiFi", "TV", "Jacuzzi", "Lounge Area"]
+            }
+          ];
+
+          // Get all hotel images - cover first, then rest
+          const hotelImages = backendHotel.hotel_images || [];
+          const coverImg = hotelImages.find(img => img.is_cover);
+          const sortedImages = coverImg 
+            ? [coverImg, ...hotelImages.filter(img => !img.is_cover)]
+            : hotelImages;
+          
+          // Map image URLs
+          const allImageUrls = sortedImages.map(img => img.image_url).slice(0, 4); // Limit to 4 images for gallery
+
+          // Transform backend data to frontend Hotel interface
+          const transformedHotel: Hotel = {
+            id: backendHotel.hotel_id,
+            name: backendHotel.name,
+            location: backendHotel.city || "Location not specified",
+            image: getCoverImage(),
+            price: finalRooms.length > 0 ? Math.min(...finalRooms.map(r => r.price)) : 150,
+            rating: backendHotel.hotel_details?.star_rating 
+              ? Number(backendHotel.hotel_details.star_rating)
+              : 4.5,
+            reviews: 0,
+            tags: [backendHotel.hotel_type || "Hotel"],
+            description: backendHotel.hotel_details?.description || "A beautiful hotel property",
+            amenities: backendHotel.hotel_amenities?.map(ha => ha.amenity.name) || ["Free WiFi", "Gym", "Free Parking"],
+            rooms: finalRooms,
+            hotelImages: allImageUrls // Store all images
+          };
+
+          setHotel(transformedHotel);
+        } else {
+          setError("Failed to load hotel data");
+        }
+      } catch (err) {
+        console.error("Error fetching hotel:", err);
+        setError("Unable to load hotel information. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHotelData();
+  }, [id]);
 
   // Calculate pricing
   const nights = useMemo(() => {
@@ -70,7 +289,21 @@ const HotelDetail = () => {
     return roomPrice * nights;
   }, [selectedRoom, hotel, nights]);
 
-  if (!hotel) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mx-auto mb-6 animate-spin">
+            <Loader className="w-10 h-10 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Loading hotel details...</h1>
+          <p className="text-muted-foreground">Please wait while we fetch the information</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !hotel) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center animate-fade-in">
@@ -78,7 +311,7 @@ const HotelDetail = () => {
             <ImageIcon className="w-10 h-10 text-muted-foreground" />
           </div>
           <h1 className="text-2xl font-bold mb-4">Hotel not found</h1>
-          <p className="text-muted-foreground mb-6">The hotel you're looking for doesn't exist</p>
+          <p className="text-muted-foreground mb-6">{error || "The hotel you're looking for doesn't exist"}</p>
           <Button variant="hero" onClick={() => navigate("/")}>
             Go back home
           </Button>
@@ -94,8 +327,10 @@ const HotelDetail = () => {
     setShowBookingModal(true);
   };
 
-  // Mock gallery images (using same image for demo)
-  const galleryImages = [hotel.image, hotel.image, hotel.image, hotel.image];
+  // Gallery images from backend, with fallback to main hotel image
+  const galleryImages = hotel.hotelImages && hotel.hotelImages.length > 0 
+    ? hotel.hotelImages 
+    : [hotel.image];
 
   return (
     <div className="min-h-screen bg-background">
@@ -276,8 +511,24 @@ const HotelDetail = () => {
                       onClick={() => setSelectedRoom(room)}
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
-                      <CardContent className="p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <CardContent className="p-0 flex flex-col sm:flex-row">
+                        {/* Room Image - Left Side */}
+                        {room.image && (
+                          <div className="w-full sm:w-48 flex-shrink-0 h-48 sm:h-auto overflow-hidden rounded-tl-lg sm:rounded-l-lg">
+                            <img
+                              src={room.image}
+                              alt={room.name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              onError={(e) => {
+                                // Hide image if it fails to load
+                                (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Room Details - Right Side */}
+                        <div className="p-6 flex-1 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -291,7 +542,7 @@ const HotelDetail = () => {
                               )}
                             </div>
                             <p className="text-muted-foreground text-sm mb-4">{room.description}</p>
-                            
+
                             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                               <div className="flex items-center gap-1.5 group/item">
                                 <Users className="h-4 w-4 group-hover/item:text-primary transition-colors" />
@@ -307,17 +558,20 @@ const HotelDetail = () => {
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
-                              {room.amenities.map((amenity, amenityIndex) => (
-                                <span
-                                  key={amenity}
-                                  className="px-2.5 py-1 rounded-lg bg-secondary/50 text-xs transition-all duration-300 hover:bg-primary/20 hover:text-primary"
-                                  style={{ transitionDelay: `${amenityIndex * 30}ms` }}
-                                >
-                                  {amenity}
-                                </span>
-                              ))}
-                            </div>
+                            {/* Room Amenities */}
+                            {room.amenities && room.amenities.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {room.amenities.map((amenity, amenityIndex) => (
+                                  <span
+                                    key={`${amenity}-${amenityIndex}`}
+                                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 text-xs font-medium text-foreground hover:from-accent/30 hover:to-primary/30 transition-all duration-300 whitespace-nowrap"
+                                    style={{ animationDelay: `${amenityIndex * 30}ms` }}
+                                  >
+                                    {amenity}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           <div className="text-right flex flex-col items-end">
