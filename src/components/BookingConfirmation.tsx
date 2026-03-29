@@ -24,14 +24,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getLoggedInUser } from "@/utils/auth";
-import { Hotel, Room } from "@/data/hotels";
+
 import { useToast } from "@/hooks/use-toast";
 
 interface BookingConfirmationProps {
   isOpen: boolean;
   onClose: () => void;
-  hotel: Hotel;
-  room: Room;
+  hotel: any;
+  room: any;
   checkIn: Date;
   checkOut: Date;
   guests: number;
