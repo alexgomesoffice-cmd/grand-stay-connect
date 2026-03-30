@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Trash2, Plus, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, Upload, Image as ImageIcon, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ const HotelAdminHotelEdit = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [hotel, setHotel] = useState<HotelResponse | null>(null);
 
   const [description, setDescription] = useState("");
@@ -207,6 +208,40 @@ const HotelAdminHotelEdit = () => {
     }
   };
 
+  const handlePublish = async () => {
+    if (!hotel?.hotel_id) {
+      toast({ title: "Error", description: "Hotel ID missing", variant: "destructive" });
+      return;
+    }
+
+    if (hotel.approval_status === "PUBLISHED") {
+      toast({ title: "Already published", description: "This hotel is already published." });
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const response = await apiPut(`/hotels/${hotel.hotel_id}/approval`, {
+        approval_status: "PUBLISHED",
+      });
+
+      if (response.success === false) throw new Error(response.message || "Failed to publish hotel");
+
+      // Update local hotel state
+      setHotel(prev => prev ? { ...prev, approval_status: "PUBLISHED" } : null);
+
+      toast({ title: "Hotel published", description: "Your hotel is now live and visible to customers." });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to publish hotel",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4 max-w-3xl">
@@ -232,14 +267,24 @@ const HotelAdminHotelEdit = () => {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className={`flex items-center gap-4 ${isLoaded ? "animate-fade-in-up" : "opacity-0"}`}>
-        <Button variant="outline" size="icon" onClick={() => navigate("/hotel-admin")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Manage Hotel Details</h1>
-          <p className="text-muted-foreground">Only hotel images, amenities, real reception, and description can be changed.</p>
+      <div className={`flex items-center justify-between ${isLoaded ? "animate-fade-in-up" : "opacity-0"}`}>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => navigate("/hotel-admin")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Manage Hotel Details</h1>
+            <p className="text-muted-foreground">Only hotel images, amenities, real reception, and description can be changed.</p>
+          </div>
         </div>
+        <Button
+          onClick={handlePublish}
+          disabled={isPublishing || hotel?.approval_status === "PUBLISHED"}
+          className="flex items-center gap-2"
+        >
+          <Globe className="h-4 w-4" />
+          {isPublishing ? "Publishing..." : hotel?.approval_status === "PUBLISHED" ? "Published" : "Publish Hotel"}
+        </Button>
       </div>
 
       <Card className={isLoaded ? "animate-fade-in-up" : "opacity-0"} style={{ animationDelay: "100ms" }}>
