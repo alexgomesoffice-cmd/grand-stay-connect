@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -16,17 +16,6 @@ const SearchBar = () => {
   const [guests, setGuests] = useState(1);
   const [rooms, setRooms] = useState(1);
   const [isGuestOpen, setIsGuestOpen] = useState(false);
-  const guestRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (guestRef.current && !guestRef.current.contains(e.target as Node)) {
-        setIsGuestOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -123,24 +112,27 @@ const SearchBar = () => {
           </div>
 
           {/* Guests & Rooms Dropdown */}
-          <div className="relative" ref={guestRef}>
+          <div className="relative">
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1">
               Guests & Rooms
             </label>
-            <button
-              type="button"
-              onClick={() => setIsGuestOpen(!isGuestOpen)}
-              className="flex items-center justify-between w-full h-12 rounded-xl border border-border/50 bg-secondary/30 px-4 text-sm hover:border-primary/40 transition-all duration-300 hover:bg-secondary/40"
-            >
-              <Users className="h-5 w-5 text-muted-foreground mr-2 shrink-0" />
-              <span className="truncate text-left flex-1">
-                {guests} {guests === 1 ? "Guest" : "Guests"} · {rooms} {rooms === 1 ? "Room" : "Rooms"}
-              </span>
-            </button>
+            <Popover open={isGuestOpen} onOpenChange={setIsGuestOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center justify-between w-full h-12 rounded-xl border border-border/50 bg-secondary/30 px-4 text-sm hover:border-primary/40 transition-all duration-300 hover:bg-secondary/40"
+                >
+                  <Users className="h-5 w-5 text-muted-foreground mr-2 shrink-0" />
+                  <span className="truncate text-left flex-1">
+                    {guests} {guests === 1 ? "Guest" : "Guests"} · {rooms} {rooms === 1 ? "Room" : "Rooms"}
+                  </span>
+                </button>
+              </PopoverTrigger>
 
-            {isGuestOpen && (
-              <div className="absolute left-0 w-64 rounded-xl border border-border bg-popover p-4 shadow-xl z-[100] space-y-4 animate-fade-in-up"
-                style={{ bottom: 'auto', top: '100%', marginTop: '8px' }}
+              <PopoverContent
+                className="w-64 rounded-xl border border-border bg-popover p-4 shadow-xl space-y-4 animate-fade-in-up"
+                align="start"
+                sideOffset={8}
               >
                 {/* Guests row */}
                 <div className="flex items-center justify-between">
@@ -188,8 +180,8 @@ const SearchBar = () => {
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Search Button */}
