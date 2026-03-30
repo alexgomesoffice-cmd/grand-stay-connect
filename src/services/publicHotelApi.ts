@@ -7,8 +7,9 @@ export interface PublicHotel {
   address: string | null;
   hotel_type: string | null;
   hotel_images?: { image_url: string; is_cover?: boolean }[];
-  hotel_details?: { description?: string | null; star_rating?: number | null };
-  hotel_rooms?: { base_price: number }[];
+  hotel_details?: { description?: string | null; star_rating?: number | string | null };
+  hotel_amenities?: { amenity: { name: string } }[];
+  hotel_rooms?: { base_price: number | string; room_type?: string | null }[];
   // ...add more fields as needed for the card
 }
 
