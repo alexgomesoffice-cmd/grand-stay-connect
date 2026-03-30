@@ -20,12 +20,30 @@ const SearchHotels = () => {
   const [error, setError] = useState<string | null>(null);
 
   const locationQuery = searchParams.get("location") || "";
+  const checkInQuery = searchParams.get("check_in") || searchParams.get("checkIn") || undefined;
+  const checkOutQuery = searchParams.get("check_out") || searchParams.get("checkOut") || undefined;
+  const guestsQuery = (() => {
+    const raw = searchParams.get("guests");
+    const n = raw ? parseInt(raw, 10) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  })();
+  const roomsQuery = (() => {
+    const raw = searchParams.get("rooms");
+    const n = raw ? parseInt(raw, 10) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  })();
 
   useEffect(() => {
     setIsLoaded(true);
     setLoading(true);
     setError(null);
-    fetchPublicHotels({ location: locationQuery })
+    fetchPublicHotels({
+      location: locationQuery || undefined,
+      check_in: checkInQuery,
+      check_out: checkOutQuery,
+      guests: guestsQuery,
+      rooms: roomsQuery,
+    })
       .then((data) => {
         setHotels(data);
         setLoading(false);
@@ -35,7 +53,7 @@ const SearchHotels = () => {
         setLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationQuery]);
+  }, [locationQuery, checkInQuery, checkOutQuery, guestsQuery, roomsQuery]);
 
   const toggleLike = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();

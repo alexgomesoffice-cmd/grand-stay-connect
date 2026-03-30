@@ -20,8 +20,9 @@ const SearchBar = () => {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (location) params.set("location", location);
-    if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
-    if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
+    // Backend expects snake_case query params: check_in / check_out
+    if (checkIn) params.set("check_in", format(checkIn, "yyyy-MM-dd"));
+    if (checkOut) params.set("check_out", format(checkOut, "yyyy-MM-dd"));
     params.set("guests", String(guests));
     params.set("rooms", String(rooms));
     navigate(`/search?${params.toString()}`);
