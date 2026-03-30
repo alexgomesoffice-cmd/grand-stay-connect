@@ -210,29 +210,8 @@ const HotelDetail = () => {
             });
           }
 
-          // If no rooms from API, use defaults
-          const finalRooms = transformedRooms.length > 0 ? transformedRooms : [
-            {
-              id: 1,
-              name: "Standard Room",
-              description: "Comfortable room with modern amenities",
-              price: 150,
-              capacity: 2,
-              beds: "1 Queen Bed",
-              size: 30,
-              amenities: ["WiFi", "TV", "Air Conditioning", "Mini Bar"]
-            },
-            {
-              id: 2,
-              name: "Deluxe Room",
-              description: "Spacious room with premium furnishings",
-              price: 250,
-              capacity: 3,
-              beds: "1 King Bed + Sofa",
-              size: 45,
-              amenities: ["WiFi", "TV", "Jacuzzi", "Lounge Area"]
-            }
-          ];
+          // Never render dummy room types when the API returns none.
+          const finalRooms = transformedRooms;
 
           // Get all hotel images - cover first, then rest
           const hotelImages = backendHotel.hotel_images || [];
@@ -250,7 +229,7 @@ const HotelDetail = () => {
             name: backendHotel.name,
             location: backendHotel.city || "Location not specified",
             image: getCoverImage(),
-            price: finalRooms.length > 0 ? Math.min(...finalRooms.map(r => r.price)) : 150,
+            price: finalRooms.length > 0 ? Math.min(...finalRooms.map(r => r.price)) : 0,
             rating: backendHotel.hotel_details?.star_rating 
               ? Number(backendHotel.hotel_details.star_rating)
               : 4.5,
@@ -262,6 +241,8 @@ const HotelDetail = () => {
             hotelImages: allImageUrls // Store all images
           };
 
+          // Clear any previously selected room when navigating between hotels.
+          setSelectedRoom(null);
           setHotel(transformedHotel);
         } else {
           setError("Failed to load hotel data");
@@ -516,99 +497,105 @@ const HotelDetail = () => {
                   <h2 className="text-2xl font-bold">Available Rooms</h2>
                   <span className="text-muted-foreground">{hotel.rooms.length} room types</span>
                 </div>
-                <div className="space-y-4">
-                  {hotel.rooms.map((room, index) => (
-                    <Card
-                      key={room.id}
-                      className={cn(
-                        "glass border-border/50 transition-all duration-500 cursor-pointer group overflow-hidden",
-                        selectedRoom?.id === room.id
-                          ? "border-primary ring-2 ring-primary/20 scale-[1.01]"
-                          : "hover:border-primary/50 hover:scale-[1.005]"
-                      )}
-                      onClick={() => setSelectedRoom(room)}
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <CardContent className="p-0 flex flex-col sm:flex-row">
-                        {/* Room Image - Left Side */}
-                        {room.image && (
-                          <div className="w-full sm:w-48 flex-shrink-0 h-48 sm:h-auto overflow-hidden rounded-tl-lg sm:rounded-l-lg">
-                            <img
-                              src={room.image}
-                              alt={room.name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              onError={(e) => {
-                                // Hide image if it fails to load
-                                (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                          </div>
+                {hotel.rooms.length === 0 ? (
+                  <div className="p-6 rounded-xl bg-secondary/30 border border-border/50 text-center text-muted-foreground animate-fade-in">
+                    No room found for this hotel
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {hotel.rooms.map((room, index) => (
+                      <Card
+                        key={room.id}
+                        className={cn(
+                          "glass border-border/50 transition-all duration-500 cursor-pointer group overflow-hidden",
+                          selectedRoom?.id === room.id
+                            ? "border-primary ring-2 ring-primary/20 scale-[1.01]"
+                            : "hover:border-primary/50 hover:scale-[1.005]"
                         )}
+                        onClick={() => setSelectedRoom(room)}
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <CardContent className="p-0 flex flex-col sm:flex-row">
+                          {/* Room Image - Left Side */}
+                          {room.image && (
+                            <div className="w-full sm:w-48 flex-shrink-0 h-48 sm:h-auto overflow-hidden rounded-tl-lg sm:rounded-l-lg">
+                              <img
+                                src={room.image}
+                                alt={room.name}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                onError={(e) => {
+                                  // Hide image if it fails to load
+                                  (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
 
-                        {/* Room Details - Right Side */}
-                        <div className="p-6 flex-1 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
-                                {room.name}
-                              </h3>
-                              {selectedRoom?.id === room.id && (
-                                <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1 animate-scale-in">
-                                  <Check className="w-3 h-3" />
-                                  Selected
-                                </span>
+                          {/* Room Details - Right Side */}
+                          <div className="p-6 flex-1 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                                  {room.name}
+                                </h3>
+                                {selectedRoom?.id === room.id && (
+                                  <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1 animate-scale-in">
+                                    <Check className="w-3 h-3" />
+                                    Selected
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-muted-foreground text-sm mb-4">{room.description}</p>
+
+                              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
+                                <div className="flex items-center gap-1.5 group/item">
+                                  <Users className="h-4 w-4 group-hover/item:text-primary transition-colors" />
+                                  <span>Up to {room.capacity} guests</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 group/item">
+                                  <Bed className="h-4 w-4 group-hover/item:text-primary transition-colors" />
+                                  <span>{room.beds}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 group/item">
+                                  <Maximize className="h-4 w-4 group-hover/item:text-primary transition-colors" />
+                                  <span>{room.size} m²</span>
+                                </div>
+                              </div>
+
+                              {/* Room Amenities */}
+                              {room.amenities && room.amenities.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  {room.amenities.map((amenity, amenityIndex) => (
+                                    <span
+                                      key={`${amenity}-${amenityIndex}`}
+                                      className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 text-xs font-medium text-foreground hover:from-accent/30 hover:to-primary/30 transition-all duration-300 whitespace-nowrap"
+                                      style={{ animationDelay: `${amenityIndex * 30}ms` }}
+                                    >
+                                      {amenity}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                             </div>
-                            <p className="text-muted-foreground text-sm mb-4">{room.description}</p>
 
-                            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                              <div className="flex items-center gap-1.5 group/item">
-                                <Users className="h-4 w-4 group-hover/item:text-primary transition-colors" />
-                                <span>Up to {room.capacity} guests</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 group/item">
-                                <Bed className="h-4 w-4 group-hover/item:text-primary transition-colors" />
-                                <span>{room.beds}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 group/item">
-                                <Maximize className="h-4 w-4 group-hover/item:text-primary transition-colors" />
-                                <span>{room.size} m²</span>
-                              </div>
+                            <div className="text-right flex flex-col items-end">
+                              <div className="text-3xl font-bold text-gradient">${room.price}</div>
+                              <div className="text-sm text-muted-foreground mb-3">per night</div>
+                              <Button
+                                variant={selectedRoom?.id === room.id ? "hero" : "outline"}
+                                size="sm"
+                                className="gap-1 group/btn"
+                              >
+                                {selectedRoom?.id === room.id ? "Selected" : "Select"}
+                                <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                              </Button>
                             </div>
-
-                            {/* Room Amenities */}
-                            {room.amenities && room.amenities.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-3">
-                                {room.amenities.map((amenity, amenityIndex) => (
-                                  <span
-                                    key={`${amenity}-${amenityIndex}`}
-                                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 text-xs font-medium text-foreground hover:from-accent/30 hover:to-primary/30 transition-all duration-300 whitespace-nowrap"
-                                    style={{ animationDelay: `${amenityIndex * 30}ms` }}
-                                  >
-                                    {amenity}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
                           </div>
-
-                          <div className="text-right flex flex-col items-end">
-                            <div className="text-3xl font-bold text-gradient">${room.price}</div>
-                            <div className="text-sm text-muted-foreground mb-3">per night</div>
-                            <Button
-                              variant={selectedRoom?.id === room.id ? "hero" : "outline"}
-                              size="sm"
-                              className="gap-1 group/btn"
-                            >
-                              {selectedRoom?.id === room.id ? "Selected" : "Select"}
-                              <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Policies */}
@@ -655,7 +642,11 @@ const HotelDetail = () => {
                       <span>Book your stay</span>
                       <div>
                         <span className="text-2xl font-bold text-gradient">
-                          ${selectedRoom?.price || hotel.price}
+                          {selectedRoom?.price && selectedRoom.price > 0
+                            ? `$${selectedRoom.price}`
+                            : hotel.price > 0
+                              ? `$${hotel.price}`
+                              : "Price unavailable"}
                         </span>
                         <span className="text-sm text-muted-foreground font-normal">/night</span>
                       </div>
@@ -763,12 +754,12 @@ const HotelDetail = () => {
                       </div>
                     )}
 
-                    {/* Price Summary */}
-                    {nights > 0 && (
+                    {/* Price Summary (only after a room is selected) */}
+                    {nights > 0 && selectedRoom && (
                       <div className="pt-4 border-t border-border space-y-2 animate-fade-in">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">
-                            ${selectedRoom?.price || hotel.price} × {nights} night{nights > 1 ? "s" : ""}
+                            ${selectedRoom.price} × {nights} night{nights > 1 ? "s" : ""}
                           </span>
                           <span>${totalPrice}</span>
                         </div>
