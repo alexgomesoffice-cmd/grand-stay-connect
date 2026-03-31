@@ -14,7 +14,7 @@ const SearchHotels = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(true);
   const [likedHotels, setLikedHotels] = useState<number[]>([]);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [hotels, setHotels] = useState<PublicHotel[]>([]);
@@ -275,7 +275,10 @@ const SearchHotels = () => {
               hotelTypeOptions={filterOptions.hotelTypeOptions}
               amenityOptions={filterOptions.amenityOptions}
               roomTypeOptions={filterOptions.roomTypeOptions}
-                bedTypeOptions={filterOptions.bedTypeOptions}
+              bedTypeOptions={filterOptions.bedTypeOptions}
+              initialSelectedHotelTypes={hotelTypesFromUrl}
+              initialSelectedRoomTypes={roomTypesFromUrl}
+              initialSelectedBedTypes={bedTypesFromUrl}
               onApply={onApplyFilters}
             />
           </div>

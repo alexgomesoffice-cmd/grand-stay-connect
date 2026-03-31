@@ -21,6 +21,11 @@ type HotelFilterSidebarProps = {
   amenityOptions?: string[];
   roomTypeOptions?: string[];
   bedTypeOptions?: string[];
+  initialSelectedRatings?: number[];
+  initialSelectedHotelTypes?: string[];
+  initialSelectedAmenities?: string[];
+  initialSelectedRoomTypes?: string[];
+  initialSelectedBedTypes?: string[];
   onApply?: (filters: HotelSearchFilters) => void;
 };
 
@@ -32,10 +37,17 @@ const HotelFilterSidebar = ({
   amenityOptions = [],
   roomTypeOptions = [],
   bedTypeOptions = [],
+  initialSelectedRatings = [],
+  initialSelectedHotelTypes = [],
+  initialSelectedAmenities = [],
+  initialSelectedRoomTypes = [],
+  initialSelectedBedTypes = [],
   onApply = () => undefined,
 }: HotelFilterSidebarProps) => {
   const safeMin = Number.isFinite(priceMin) ? priceMin : 0;
   const safeMax = Number.isFinite(priceMax) ? priceMax : safeMin;
+  const effectiveMin = safeMin;
+  const effectiveMax = safeMax > safeMin ? safeMax : safeMin + 10; // Ensure max > min to prevent Slider issues
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     price: true,
@@ -46,22 +58,38 @@ const HotelFilterSidebar = ({
     bedTypes: true,
   });
 
-  const [priceRange, setPriceRange] = useState<[number, number]>([safeMin, safeMax]);
-  const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [selectedHotelTypes, setSelectedHotelTypes] = useState<string[]>([]);
-  const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
-  const [selectedBedTypes, setSelectedBedTypes] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [selectedRatings, setSelectedRatings] = useState<number[]>(initialSelectedRatings);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>(initialSelectedAmenities);
+  const [selectedHotelTypes, setSelectedHotelTypes] = useState<string[]>(initialSelectedHotelTypes);
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>(initialSelectedRoomTypes);
+  const [selectedBedTypes, setSelectedBedTypes] = useState<string[]>(initialSelectedBedTypes);
 
   // When backend-derived options change, reset slider range and clear selections.
   useEffect(() => {
-    setPriceRange([safeMin, safeMax]);
+    setPriceRange([0, 1000]);
     setSelectedRatings([]);
     setSelectedAmenities([]);
-    setSelectedHotelTypes([]);
-    setSelectedRoomTypes([]);
-    setSelectedBedTypes([]);
   }, [safeMin, safeMax]);
+
+  // Sync initial selections from URL / hero search once options are available.
+  useEffect(() => {
+    if (initialSelectedHotelTypes.length) {
+      setSelectedHotelTypes(initialSelectedHotelTypes);
+    }
+    if (initialSelectedRoomTypes.length) {
+      setSelectedRoomTypes(initialSelectedRoomTypes);
+    }
+    if (initialSelectedBedTypes.length) {
+      setSelectedBedTypes(initialSelectedBedTypes);
+    }
+    if (initialSelectedRatings.length) {
+      setSelectedRatings(initialSelectedRatings);
+    }
+    if (initialSelectedAmenities.length) {
+      setSelectedAmenities(initialSelectedAmenities);
+    }
+  }, [initialSelectedHotelTypes, initialSelectedRoomTypes, initialSelectedBedTypes, initialSelectedRatings, initialSelectedAmenities]);
 
   const toggleRating = (r: number) =>
     setSelectedRatings((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
@@ -75,8 +103,10 @@ const HotelFilterSidebar = ({
     setSelectedBedTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const applyFilters = () => {
+    const actualMin = effectiveMin + (priceRange[0] / 1000) * (effectiveMax - effectiveMin);
+    const actualMax = effectiveMin + (priceRange[1] / 1000) * (effectiveMax - effectiveMin);
     onApply({
-      priceRange,
+      priceRange: [actualMin, actualMax],
       selectedRatings,
       selectedAmenities,
       selectedHotelTypes,
@@ -127,20 +157,20 @@ const HotelFilterSidebar = ({
           {expanded.price && (
             <>
               <Slider
-                min={safeMin}
-                max={safeMax}
-                step={10}
+                min={0}
+                max={1000}
+                step={1}
                 value={priceRange}
                 onValueChange={(v) => setPriceRange(v as [number, number])}
                 className="mb-3"
               />
               <div className="flex justify-between items-center gap-2">
                 <div className="flex-1 rounded-lg border border-border bg-secondary/30 px-3 py-2 text-center text-sm font-medium transition-colors hover:border-primary/40">
-                  ${priceRange[0]}
+                  ${Math.round(effectiveMin + (priceRange[0] / 1000) * (effectiveMax - effectiveMin))}
                 </div>
                 <span className="text-xs text-muted-foreground">to</span>
                 <div className="flex-1 rounded-lg border border-border bg-secondary/30 px-3 py-2 text-center text-sm font-medium transition-colors hover:border-primary/40">
-                  ${priceRange[1]}
+                  ${Math.round(effectiveMin + (priceRange[1] / 1000) * (effectiveMax - effectiveMin))}
                 </div>
               </div>
             </>
