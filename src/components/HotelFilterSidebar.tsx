@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Star, DollarSign, SlidersHorizontal, Plus, Minus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
@@ -49,6 +49,8 @@ const HotelFilterSidebar = ({
   const effectiveMin = safeMin;
   const effectiveMax = safeMax > safeMin ? safeMax : safeMin + 10; // Ensure max > min to prevent Slider issues
 
+  const initialSet = useRef(false);
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     price: true,
     rating: true,
@@ -74,20 +76,23 @@ const HotelFilterSidebar = ({
 
   // Sync initial selections from URL / hero search once options are available.
   useEffect(() => {
-    if (initialSelectedHotelTypes.length) {
-      setSelectedHotelTypes(initialSelectedHotelTypes);
-    }
-    if (initialSelectedRoomTypes.length) {
-      setSelectedRoomTypes(initialSelectedRoomTypes);
-    }
-    if (initialSelectedBedTypes.length) {
-      setSelectedBedTypes(initialSelectedBedTypes);
-    }
-    if (initialSelectedRatings.length) {
-      setSelectedRatings(initialSelectedRatings);
-    }
-    if (initialSelectedAmenities.length) {
-      setSelectedAmenities(initialSelectedAmenities);
+    if (!initialSet.current) {
+      if (initialSelectedHotelTypes.length) {
+        setSelectedHotelTypes(initialSelectedHotelTypes);
+      }
+      if (initialSelectedRoomTypes.length) {
+        setSelectedRoomTypes(initialSelectedRoomTypes);
+      }
+      if (initialSelectedBedTypes.length) {
+        setSelectedBedTypes(initialSelectedBedTypes);
+      }
+      if (initialSelectedRatings.length) {
+        setSelectedRatings(initialSelectedRatings);
+      }
+      if (initialSelectedAmenities.length) {
+        setSelectedAmenities(initialSelectedAmenities);
+      }
+      initialSet.current = true;
     }
   }, [initialSelectedHotelTypes, initialSelectedRoomTypes, initialSelectedBedTypes, initialSelectedRatings, initialSelectedAmenities]);
 
@@ -95,12 +100,6 @@ const HotelFilterSidebar = ({
     setSelectedRatings((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   const toggleAmenity = (a: string) =>
     setSelectedAmenities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
-  const toggleHotelType = (t: string) =>
-    setSelectedHotelTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-  const toggleRoomType = (t: string) =>
-    setSelectedRoomTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-  const toggleBedType = (t: string) =>
-    setSelectedBedTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const applyFilters = () => {
     const actualMin = effectiveMin + (priceRange[0] / 1000) * (effectiveMax - effectiveMin);
@@ -211,7 +210,21 @@ const HotelFilterSidebar = ({
                   key={t}
                   className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
                 >
-                  <Checkbox checked={selectedHotelTypes.includes(t)} onCheckedChange={() => toggleHotelType(t)} />
+                  <Checkbox checked={selectedHotelTypes.includes(t)} onCheckedChange={(v) => {
+
+                    const isChecked = !!v;
+
+                    setSelectedHotelTypes((prev) =>
+
+                      isChecked
+
+                        ? [...new Set([...prev, t])]
+
+                        : prev.filter((x) => x !== t)
+
+                    );
+
+                  }} />
                   {t}
                 </label>
               ))}
@@ -229,7 +242,21 @@ const HotelFilterSidebar = ({
                   key={t}
                   className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
                 >
-                  <Checkbox checked={selectedRoomTypes.includes(t)} onCheckedChange={() => toggleRoomType(t)} />
+                  <Checkbox checked={selectedRoomTypes.includes(t)} onCheckedChange={(v) => {
+
+                    const isChecked = !!v;
+
+                    setSelectedRoomTypes((prev) =>
+
+                      isChecked
+
+                        ? [...new Set([...prev, t])]
+
+                        : prev.filter((x) => x !== t)
+
+                    );
+
+                  }} />
                   {t}
                 </label>
               ))}
@@ -247,7 +274,21 @@ const HotelFilterSidebar = ({
                   key={t}
                   className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
                 >
-                  <Checkbox checked={selectedBedTypes.includes(t)} onCheckedChange={() => toggleBedType(t)} />
+                  <Checkbox checked={selectedBedTypes.includes(t)} onCheckedChange={(v) => {
+
+                    const isChecked = !!v;
+
+                    setSelectedBedTypes((prev) =>
+
+                      isChecked
+
+                        ? [...new Set([...prev, t])]
+
+                        : prev.filter((x) => x !== t)
+
+                    );
+
+                  }} />
                   {t}
                 </label>
               ))}

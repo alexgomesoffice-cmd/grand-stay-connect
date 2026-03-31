@@ -64,15 +64,15 @@ const SearchHotels = () => {
   const roomTypesQueryStr = searchParams.get("room_types") || "";
   const bedTypesQueryStr = searchParams.get("bed_types") || "";
 
-  const hotelTypesFromUrl = hotelTypesQueryStr
+  const hotelTypesFromUrl = useMemo(() => hotelTypesQueryStr
     ? hotelTypesQueryStr.split(",").map((x) => x.trim()).filter(Boolean)
-    : [];
-  const roomTypesFromUrl = roomTypesQueryStr
+    : [], [hotelTypesQueryStr]);
+  const roomTypesFromUrl = useMemo(() => roomTypesQueryStr
     ? roomTypesQueryStr.split(",").map((x) => x.trim()).filter(Boolean)
-    : [];
-  const bedTypesFromUrl = bedTypesQueryStr
+    : [], [roomTypesQueryStr]);
+  const bedTypesFromUrl = useMemo(() => bedTypesQueryStr
     ? bedTypesQueryStr.split(",").map((x) => x.trim()).filter(Boolean)
-    : [];
+    : [], [bedTypesQueryStr]);
 
   const applyUrlTypeFilters = (list: PublicHotel[]): PublicHotel[] => {
     if (!hotelTypesFromUrl.length && !roomTypesFromUrl.length && !bedTypesFromUrl.length) return list;
