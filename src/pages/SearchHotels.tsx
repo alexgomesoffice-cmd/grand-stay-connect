@@ -261,7 +261,7 @@ const SearchHotels = () => {
           <p className={`text-muted-foreground text-center mb-8 ${isLoaded ? "animate-fade-in-up" : "opacity-0"}`} style={{ animationDelay: "50ms" }}>
             Find your perfect stay
           </p>
-          <SearchBar />
+          <SearchBar showFilters={false} />
         </div>
       </section>
 
