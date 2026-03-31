@@ -8,7 +8,6 @@ import { Search, MapPin, Calendar as CalendarIcon, Users, Minus, Plus } from "lu
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { fetchBedTypeOptions, fetchHotelTypeOptions, fetchRoomTypeOptions, type EnumOption } from "@/services/publicHotelApi";
 
 const SearchBar = () => {
@@ -19,7 +18,6 @@ const SearchBar = () => {
   const [guests, setGuests] = useState(1);
   const [rooms, setRooms] = useState(1);
   const [isGuestOpen, setIsGuestOpen] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [hotelTypeOptions, setHotelTypeOptions] = useState<EnumOption[]>([]);
   const [roomTypeOptions, setRoomTypeOptions] = useState<EnumOption[]>([]);
@@ -230,99 +228,120 @@ const SearchBar = () => {
           </div>
         </div>
 
-        {/* Bottom-center filter dropdown */}
-        <div className="flex justify-center pt-3">
-          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-9 w-9 rounded-full border border-border/50 bg-secondary/30 hover:bg-secondary/40 transition-colors",
-                )}
-                aria-label="More filters"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 ml-1 transition-transform",
-                    filtersOpen && "rotate-180"
-                  )}
-                />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[520px] rounded-xl border border-border bg-popover p-4 shadow-xl animate-fade-in-up"
-              align="center"
-              sideOffset={8}
-            >
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-3">
-                  <div className="text-sm font-semibold">Hotel Type</div>
-                  {hotelTypeOptions.map((opt) => (
-                    <label
-                      key={opt.value}
-                      className="flex items-center gap-2 cursor-pointer text-sm"
-                    >
-                      <Checkbox
-                        checked={selectedHotelTypes.includes(opt.value)}
-                        onCheckedChange={(v) => {
-                          const checked = !!v;
-                          setSelectedHotelTypes((prev) =>
-                            checked ? [...new Set([...prev, opt.value])] : prev.filter((x) => x !== opt.value)
-                          );
-                        }}
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
-                </div>
-
-                <div className="space-y-3">
-                  <div className="text-sm font-semibold">Room Type</div>
-                  {roomTypeOptions.map((opt) => (
-                    <label
-                      key={opt.value}
-                      className="flex items-center gap-2 cursor-pointer text-sm"
-                    >
-                      <Checkbox
-                        checked={selectedRoomTypes.includes(opt.value)}
-                        onCheckedChange={(v) => {
-                          const checked = !!v;
-                          setSelectedRoomTypes((prev) =>
-                            checked ? [...new Set([...prev, opt.value])] : prev.filter((x) => x !== opt.value)
-                          );
-                        }}
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
-                </div>
-
-                <div className="space-y-3">
-                  <div className="text-sm font-semibold">Bed Type</div>
-                  {bedTypeOptions.map((opt) => (
-                    <label
-                      key={opt.value}
-                      className="flex items-center gap-2 cursor-pointer text-sm"
-                    >
-                      <Checkbox
-                        checked={selectedBedTypes.includes(opt.value)}
-                        onCheckedChange={(v) => {
-                          const checked = !!v;
-                          setSelectedBedTypes((prev) =>
-                            checked ? [...new Set([...prev, opt.value])] : prev.filter((x) => x !== opt.value)
-                          );
-                        }}
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
-                </div>
+        {/* Constant filter form (no dropdown) */}
+        <div className="mt-3 pt-3 border-t border-border/50 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+                <span className="text-xs font-semibold text-foreground">Hotel Type</span>
               </div>
-            </PopoverContent>
-          </Popover>
+              <div className="flex flex-wrap gap-2">
+                {hotelTypeOptions.map((opt) => {
+                  const checked = selectedHotelTypes.includes(opt.value);
+                  return (
+                    <label
+                      key={opt.value}
+                      className={cn(
+                        "inline-flex items-center gap-2 cursor-pointer select-none rounded-full border px-3 py-1 text-xs transition-colors",
+                        checked
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:bg-secondary/50"
+                      )}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const isChecked = !!v;
+                          setSelectedHotelTypes((prev) =>
+                            isChecked
+                              ? [...new Set([...prev, opt.value])]
+                              : prev.filter((x) => x !== opt.value)
+                          );
+                        }}
+                        className="translate-y-[0.5px]"
+                      />
+                      {opt.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+                <span className="text-xs font-semibold text-foreground">Room Type</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {roomTypeOptions.map((opt) => {
+                  const checked = selectedRoomTypes.includes(opt.value);
+                  return (
+                    <label
+                      key={opt.value}
+                      className={cn(
+                        "inline-flex items-center gap-2 cursor-pointer select-none rounded-full border px-3 py-1 text-xs transition-colors",
+                        checked
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:bg-secondary/50"
+                      )}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const isChecked = !!v;
+                          setSelectedRoomTypes((prev) =>
+                            isChecked
+                              ? [...new Set([...prev, opt.value])]
+                              : prev.filter((x) => x !== opt.value)
+                          );
+                        }}
+                        className="translate-y-[0.5px]"
+                      />
+                      {opt.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+                <span className="text-xs font-semibold text-foreground">Bed Type</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {bedTypeOptions.map((opt) => {
+                  const checked = selectedBedTypes.includes(opt.value);
+                  return (
+                    <label
+                      key={opt.value}
+                      className={cn(
+                        "inline-flex items-center gap-2 cursor-pointer select-none rounded-full border px-3 py-1 text-xs transition-colors",
+                        checked
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/50 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:bg-secondary/50"
+                      )}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const isChecked = !!v;
+                          setSelectedBedTypes((prev) =>
+                            isChecked
+                              ? [...new Set([...prev, opt.value])]
+                              : prev.filter((x) => x !== opt.value)
+                          );
+                        }}
+                        className="translate-y-[0.5px]"
+                      />
+                      {opt.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
