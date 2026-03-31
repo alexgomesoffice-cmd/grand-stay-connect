@@ -92,7 +92,7 @@ const SearchHotels = () => {
         .filter((x): x is string => typeof x === "string" && x.length > 0);
 
       const bedTypeMatch =
-        !bedTypesFromUrl.length || bedTypesFromUrl.every((bt) => hotelBedTypes.includes(bt));
+        !bedTypesFromUrl.length || bedTypesFromUrl.some((bt) => hotelBedTypes.includes(bt));
 
       return hotelTypeMatch && roomTypeMatch && bedTypeMatch;
     });
@@ -230,7 +230,7 @@ const SearchHotels = () => {
         .filter((x): x is string => typeof x === "string" && x.length > 0);
 
       const bedTypesMatch =
-        !selectedBedTypes.length || selectedBedTypes.every((bt) => hotelBedTypes.includes(bt));
+        !selectedBedTypes.length || selectedBedTypes.some((bt) => hotelBedTypes.includes(bt));
 
       const priceMatch = prices.length ? prices.some((p) => p >= minPrice && p <= maxPrice) : false;
 
