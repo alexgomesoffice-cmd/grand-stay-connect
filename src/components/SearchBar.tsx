@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Search, MapPin, Calendar as CalendarIcon, Users, Minus, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { fetchBedTypeOptions, fetchHotelTypeOptions, fetchRoomTypeOptions, type EnumOption } from "@/services/publicHotelApi";
 
 const SearchBar = () => {
   const navigate = useNavigate();
@@ -16,6 +19,35 @@ const SearchBar = () => {
   const [guests, setGuests] = useState(1);
   const [rooms, setRooms] = useState(1);
   const [isGuestOpen, setIsGuestOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const [hotelTypeOptions, setHotelTypeOptions] = useState<EnumOption[]>([]);
+  const [roomTypeOptions, setRoomTypeOptions] = useState<EnumOption[]>([]);
+  const [bedTypeOptions, setBedTypeOptions] = useState<EnumOption[]>([]);
+
+  const [selectedHotelTypes, setSelectedHotelTypes] = useState<string[]>([]);
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
+  const [selectedBedTypes, setSelectedBedTypes] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Fetch enum-like options for the dropdown filters.
+    const run = async () => {
+      try {
+        const [ht, rt, bt] = await Promise.all([
+          fetchHotelTypeOptions(),
+          fetchRoomTypeOptions(),
+          fetchBedTypeOptions(),
+        ]);
+        setHotelTypeOptions(ht);
+        setRoomTypeOptions(rt);
+        setBedTypeOptions(bt);
+      } catch (e) {
+        // If meta endpoints fail, keep dropdown empty rather than breaking hero search.
+        console.error("Failed to load filter options:", e);
+      }
+    };
+    run();
+  }, []);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -25,12 +57,15 @@ const SearchBar = () => {
     if (checkOut) params.set("check_out", format(checkOut, "yyyy-MM-dd"));
     params.set("guests", String(guests));
     params.set("rooms", String(rooms));
+    if (selectedHotelTypes.length) params.set("hotel_types", selectedHotelTypes.join(","));
+    if (selectedRoomTypes.length) params.set("room_types", selectedRoomTypes.join(","));
+    if (selectedBedTypes.length) params.set("bed_types", selectedBedTypes.join(","));
     navigate(`/search?${params.toString()}`);
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: "400ms" }}>
-      <div className="glass rounded-2xl p-3 sm:p-4 shadow-2xl shadow-primary/10 hover:shadow-primary/20 transition-shadow duration-500 group/bar">
+      <div className="glass rounded-2xl p-3 sm:p-4 shadow-2xl shadow-primary/10 transition-shadow duration-500 group/bar relative overflow-hidden">
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-0 group-hover/bar:opacity-100 blur-xl transition-opacity duration-500 -z-10" />
 
         <div className="grid grid-cols-1 sm:grid-cols-[2fr_1.2fr_1.2fr_1.3fr_auto] gap-3 sm:gap-4">
@@ -193,6 +228,101 @@ const SearchBar = () => {
               <span>Search</span>
             </Button>
           </div>
+        </div>
+
+        {/* Bottom-center filter dropdown */}
+        <div className="flex justify-center pt-3">
+          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-9 w-9 rounded-full border border-border/50 bg-secondary/30 hover:bg-secondary/40 transition-colors",
+                )}
+                aria-label="More filters"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 ml-1 transition-transform",
+                    filtersOpen && "rotate-180"
+                  )}
+                />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-[520px] rounded-xl border border-border bg-popover p-4 shadow-xl animate-fade-in-up"
+              align="center"
+              sideOffset={8}
+            >
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold">Hotel Type</div>
+                  {hotelTypeOptions.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex items-center gap-2 cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={selectedHotelTypes.includes(opt.value)}
+                        onCheckedChange={(v) => {
+                          const checked = !!v;
+                          setSelectedHotelTypes((prev) =>
+                            checked ? [...new Set([...prev, opt.value])] : prev.filter((x) => x !== opt.value)
+                          );
+                        }}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold">Room Type</div>
+                  {roomTypeOptions.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex items-center gap-2 cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={selectedRoomTypes.includes(opt.value)}
+                        onCheckedChange={(v) => {
+                          const checked = !!v;
+                          setSelectedRoomTypes((prev) =>
+                            checked ? [...new Set([...prev, opt.value])] : prev.filter((x) => x !== opt.value)
+                          );
+                        }}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold">Bed Type</div>
+                  {bedTypeOptions.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex items-center gap-2 cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={selectedBedTypes.includes(opt.value)}
+                        onCheckedChange={(v) => {
+                          const checked = !!v;
+                          setSelectedBedTypes((prev) =>
+                            checked ? [...new Set([...prev, opt.value])] : prev.filter((x) => x !== opt.value)
+                          );
+                        }}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
     </div>

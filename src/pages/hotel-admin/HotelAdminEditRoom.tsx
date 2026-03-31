@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiGet, apiPut } from "@/utils/api";
+import { fetchBedTypeOptions, type EnumOption } from "@/services/publicHotelApi";
 
 interface RoomDetail {
   hotel_room_details_id: number;
@@ -58,6 +59,7 @@ const HotelAdminEditRoom = () => {
   const [hotelRoomId, setHotelRoomId] = useState<number | null>(null);
   const [availableAmenities, setAvailableAmenities] = useState<{ id: string; name: string }[]>([]);
   const [availableRoomTypes, setAvailableRoomTypes] = useState<string[]>([]);
+  const [bedTypeOptions, setBedTypeOptions] = useState<EnumOption[]>([]);
 
   const [roomData, setRoomData] = useState<RoomDetail | null>(null);
   const [formData, setFormData] = useState({
@@ -213,6 +215,19 @@ const HotelAdminEditRoom = () => {
     };
 
     fetchAmenities();
+  }, []);
+
+  // Fetch enum-like bed type options
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const opts = await fetchBedTypeOptions();
+        setBedTypeOptions(opts);
+      } catch (e) {
+        console.error("Failed to fetch bed type options:", e);
+      }
+    };
+    run();
   }, []);
 
   const handleFormChange = (field: string, value: string | number | boolean) => {
@@ -436,11 +451,11 @@ const HotelAdminEditRoom = () => {
                     <SelectValue placeholder="Select bed type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Single">Single</SelectItem>
-                    <SelectItem value="Queen">Queen</SelectItem>
-                    <SelectItem value="King">King</SelectItem>
-                    <SelectItem value="Double">Double</SelectItem>
-                    <SelectItem value="Twin">Twin</SelectItem>
+                    {bedTypeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

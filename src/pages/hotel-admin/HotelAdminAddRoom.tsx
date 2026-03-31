@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost, apiGet } from "@/utils/api";
+import { fetchBedTypeOptions, fetchRoomTypeOptions, type EnumOption } from "@/services/publicHotelApi";
 
 interface PhysicalRoom {
   room_number: string;
@@ -42,6 +43,8 @@ const HotelAdminAddRoom = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hotelId, setHotelId] = useState<string | null>(null);
   const [availableAmenities, setAvailableAmenities] = useState<{ id: string; name: string }[]>([]);
+  const [roomTypeOptions, setRoomTypeOptions] = useState<EnumOption[]>([]);
+  const [bedTypeOptions, setBedTypeOptions] = useState<EnumOption[]>([]);
 
   const [roomTypeData, setRoomTypeData] = useState<RoomTypeData>({
     room_type: "",
@@ -120,6 +123,20 @@ const HotelAdminAddRoom = () => {
       }
     };
     fetchAmenities();
+  }, []);
+
+  // Fetch enum-like options for room/bed types
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const [roomTypes, bedTypes] = await Promise.all([fetchRoomTypeOptions(), fetchBedTypeOptions()]);
+        setRoomTypeOptions(roomTypes);
+        setBedTypeOptions(bedTypes);
+      } catch (e) {
+        console.error("Failed to fetch room/bed type options:", e);
+      }
+    };
+    run();
   }, []);
 
   // Generate physical rooms when count or starting number changes
@@ -346,10 +363,11 @@ const HotelAdminAddRoom = () => {
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Standard">Standard</SelectItem>
-                    <SelectItem value="Deluxe">Deluxe</SelectItem>
-                    <SelectItem value="Suite">Suite</SelectItem>
-                    <SelectItem value="Penthouse">Penthouse</SelectItem>
+                    {roomTypeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -455,11 +473,11 @@ const HotelAdminAddRoom = () => {
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Single">Single</SelectItem>
-                          <SelectItem value="Double">Double</SelectItem>
-                          <SelectItem value="Queen">Queen</SelectItem>
-                          <SelectItem value="King">King</SelectItem>
-                          <SelectItem value="Twin">Twin</SelectItem>
+                          {bedTypeOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

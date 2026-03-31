@@ -11,9 +11,11 @@ import { fetchHotels, HotelResponse } from "@/services/adminApi";
 const getHotelEmoji = (hotelType: string | null) => {
   const type = hotelType?.toLowerCase() || "";
   const emojiMap: Record<string, string> = {
+    hotel: "🏨",
     "5-star luxury": "🏨",
     "resort": "🏖️",
     "boutique": "🏛️",
+    hostel: "🧳",
     "heritage hotel": "🏛️",
     "business hotel": "🏢",
     "budget hotel": "🛏️",

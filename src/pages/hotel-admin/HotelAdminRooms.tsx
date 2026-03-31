@@ -29,10 +29,14 @@ const statusConfig: Record<string, { bg: string; dot: string }> = {
 };
 
 const typeGradients: Record<string, string> = {
+  standard: "from-green-500 to-emerald-500",
+  delux: "from-primary to-accent",
   Suite: "from-purple-500 to-pink-500",
   Deluxe: "from-primary to-accent",
   Standard: "from-green-500 to-emerald-500",
   Penthouse: "from-amber-500 to-orange-500",
+  suite: "from-purple-500 to-pink-500",
+  penthouse: "from-amber-500 to-orange-500",
 };
 
 const HotelAdminRooms = () => {

@@ -10,26 +10,29 @@ export type HotelSearchFilters = {
   selectedHotelTypes: string[];
   selectedAmenities: string[];
   selectedRoomTypes: string[];
+  selectedBedTypes: string[];
 };
 
 type HotelFilterSidebarProps = {
-  priceMin: number;
-  priceMax: number;
-  ratingOptions: number[];
-  hotelTypeOptions: string[];
-  amenityOptions: string[];
-  roomTypeOptions: string[];
-  onApply: (filters: HotelSearchFilters) => void;
+  priceMin?: number;
+  priceMax?: number;
+  ratingOptions?: number[];
+  hotelTypeOptions?: string[];
+  amenityOptions?: string[];
+  roomTypeOptions?: string[];
+  bedTypeOptions?: string[];
+  onApply?: (filters: HotelSearchFilters) => void;
 };
 
 const HotelFilterSidebar = ({
-  priceMin,
-  priceMax,
-  ratingOptions,
-  hotelTypeOptions,
-  amenityOptions,
-  roomTypeOptions,
-  onApply,
+  priceMin = 0,
+  priceMax = 0,
+  ratingOptions = [],
+  hotelTypeOptions = [],
+  amenityOptions = [],
+  roomTypeOptions = [],
+  bedTypeOptions = [],
+  onApply = () => undefined,
 }: HotelFilterSidebarProps) => {
   const safeMin = Number.isFinite(priceMin) ? priceMin : 0;
   const safeMax = Number.isFinite(priceMax) ? priceMax : safeMin;
@@ -40,6 +43,7 @@ const HotelFilterSidebar = ({
     hotelType: true,
     amenities: true,
     roomTypes: true,
+    bedTypes: true,
   });
 
   const [priceRange, setPriceRange] = useState<[number, number]>([safeMin, safeMax]);
@@ -47,6 +51,7 @@ const HotelFilterSidebar = ({
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedHotelTypes, setSelectedHotelTypes] = useState<string[]>([]);
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
+  const [selectedBedTypes, setSelectedBedTypes] = useState<string[]>([]);
 
   // When backend-derived options change, reset slider range and clear selections.
   useEffect(() => {
@@ -55,6 +60,7 @@ const HotelFilterSidebar = ({
     setSelectedAmenities([]);
     setSelectedHotelTypes([]);
     setSelectedRoomTypes([]);
+    setSelectedBedTypes([]);
   }, [safeMin, safeMax]);
 
   const toggleRating = (r: number) =>
@@ -65,6 +71,8 @@ const HotelFilterSidebar = ({
     setSelectedHotelTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
   const toggleRoomType = (t: string) =>
     setSelectedRoomTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  const toggleBedType = (t: string) =>
+    setSelectedBedTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const applyFilters = () => {
     onApply({
@@ -73,6 +81,7 @@ const HotelFilterSidebar = ({
       selectedAmenities,
       selectedHotelTypes,
       selectedRoomTypes,
+      selectedBedTypes,
     });
   };
 
@@ -208,6 +217,24 @@ const HotelFilterSidebar = ({
                   className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
                 >
                   <Checkbox checked={selectedRoomTypes.includes(t)} onCheckedChange={() => toggleRoomType(t)} />
+                  {t}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bed Types */}
+        <div className="animate-fade-in-up" style={{ animationDelay: "420ms" }}>
+          {renderSectionHeader("bedTypes", "Bed Types")}
+          {expanded.bedTypes && (
+            <div className="space-y-2">
+              {bedTypeOptions.map((t) => (
+                <label
+                  key={t}
+                  className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
+                >
+                  <Checkbox checked={selectedBedTypes.includes(t)} onCheckedChange={() => toggleBedType(t)} />
                   {t}
                 </label>
               ))}

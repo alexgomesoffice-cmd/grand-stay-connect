@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import HotelFilterSidebar from "@/components/HotelFilterSidebar";
 import type { HotelSearchFilters } from "@/components/HotelFilterSidebar";
+import { fetchBedTypeOptions, fetchHotelTypeOptions, fetchRoomTypeOptions } from "@/services/publicHotelApi";
 
 const SearchHotels = () => {
   const navigate = useNavigate();
@@ -21,6 +22,29 @@ const SearchHotels = () => {
   const [activeFilters, setActiveFilters] = useState<HotelSearchFilters | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [hotelTypeEnumValues, setHotelTypeEnumValues] = useState<string[]>([]);
+  const [roomTypeEnumValues, setRoomTypeEnumValues] = useState<string[]>([]);
+  const [bedTypeEnumValues, setBedTypeEnumValues] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Fetch enum-like filter options from backend.
+    const run = async () => {
+      try {
+        const [hotelTypes, roomTypes, bedTypes] = await Promise.all([
+          fetchHotelTypeOptions(),
+          fetchRoomTypeOptions(),
+          fetchBedTypeOptions(),
+        ]);
+        setHotelTypeEnumValues(hotelTypes.map((o) => o.value));
+        setRoomTypeEnumValues(roomTypes.map((o) => o.value));
+        setBedTypeEnumValues(bedTypes.map((o) => o.value));
+      } catch (e) {
+        console.error("Failed to fetch enum filter options:", e);
+      }
+    };
+    run();
+  }, []);
 
   const locationQuery = searchParams.get("location") || "";
   const checkInQuery = searchParams.get("check_in") || searchParams.get("checkIn") || undefined;
@@ -36,6 +60,44 @@ const SearchHotels = () => {
     return Number.isFinite(n) && n > 0 ? n : undefined;
   })();
 
+  const hotelTypesQueryStr = searchParams.get("hotel_types") || "";
+  const roomTypesQueryStr = searchParams.get("room_types") || "";
+  const bedTypesQueryStr = searchParams.get("bed_types") || "";
+
+  const hotelTypesFromUrl = hotelTypesQueryStr
+    ? hotelTypesQueryStr.split(",").map((x) => x.trim()).filter(Boolean)
+    : [];
+  const roomTypesFromUrl = roomTypesQueryStr
+    ? roomTypesQueryStr.split(",").map((x) => x.trim()).filter(Boolean)
+    : [];
+  const bedTypesFromUrl = bedTypesQueryStr
+    ? bedTypesQueryStr.split(",").map((x) => x.trim()).filter(Boolean)
+    : [];
+
+  const applyUrlTypeFilters = (list: PublicHotel[]): PublicHotel[] => {
+    if (!hotelTypesFromUrl.length && !roomTypesFromUrl.length && !bedTypesFromUrl.length) return list;
+
+    return list.filter((hotel) => {
+      const hotelTypeMatch =
+        !hotelTypesFromUrl.length ||
+        (hotel.hotel_type ? hotelTypesFromUrl.includes(hotel.hotel_type) : false);
+
+      const roomTypeMatch =
+        !roomTypesFromUrl.length ||
+        (hotel.hotel_rooms || []).some((r) => (r.room_type ? roomTypesFromUrl.includes(r.room_type) : false));
+
+      const hotelBedTypes = (hotel.hotel_rooms || [])
+        .flatMap((r) => r.hotel_room_details || [])
+        .map((d) => d?.bed_type)
+        .filter((x): x is string => typeof x === "string" && x.length > 0);
+
+      const bedTypeMatch =
+        !bedTypesFromUrl.length || bedTypesFromUrl.every((bt) => hotelBedTypes.includes(bt));
+
+      return hotelTypeMatch && roomTypeMatch && bedTypeMatch;
+    });
+  };
+
   useEffect(() => {
     setIsLoaded(true);
     setLoading(true);
@@ -50,7 +112,7 @@ const SearchHotels = () => {
     })
       .then((data) => {
         setHotels(data);
-        setFilteredHotels(data);
+        setFilteredHotels(applyUrlTypeFilters(data));
         setLoading(false);
       })
       .catch((err) => {
@@ -58,7 +120,7 @@ const SearchHotels = () => {
         setLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationQuery, checkInQuery, checkOutQuery, guestsQuery, roomsQuery]);
+  }, [locationQuery, checkInQuery, checkOutQuery, guestsQuery, roomsQuery, hotelTypesQueryStr, roomTypesQueryStr, bedTypesQueryStr]);
 
   const toggleLike = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -82,6 +144,7 @@ const SearchHotels = () => {
     const allHotelTypes = new Set<string>();
     const allAmenities = new Set<string>();
     const allRoomTypes = new Set<string>();
+    const allBedTypes = new Set<string>();
     const ratingThresholds = new Set<number>();
 
     let minRoomPrice = Number.POSITIVE_INFINITY;
@@ -102,6 +165,9 @@ const SearchHotels = () => {
 
       for (const r of hotel.hotel_rooms || []) {
         if (r?.room_type) allRoomTypes.add(r.room_type);
+        for (const detail of r.hotel_room_details || []) {
+          if (detail?.bed_type) allBedTypes.add(detail.bed_type);
+        }
       }
 
       const rating = parsedStarRating(hotel);
@@ -117,11 +183,18 @@ const SearchHotels = () => {
       priceMin,
       priceMax,
       ratingOptions: [5, 4, 3, 2, 1].filter((i) => ratingThresholds.has(i)),
-      hotelTypeOptions: Array.from(allHotelTypes).sort((a, b) => a.localeCompare(b)),
+      hotelTypeOptions: hotelTypeEnumValues.length
+        ? [...hotelTypeEnumValues].sort((a, b) => a.localeCompare(b))
+        : Array.from(allHotelTypes).sort((a, b) => a.localeCompare(b)),
       amenityOptions: Array.from(allAmenities).sort((a, b) => a.localeCompare(b)),
-      roomTypeOptions: Array.from(allRoomTypes).sort((a, b) => a.localeCompare(b)),
+      roomTypeOptions: roomTypeEnumValues.length
+        ? [...roomTypeEnumValues].sort((a, b) => a.localeCompare(b))
+        : Array.from(allRoomTypes).sort((a, b) => a.localeCompare(b)),
+      bedTypeOptions: bedTypeEnumValues.length
+        ? [...bedTypeEnumValues].sort((a, b) => a.localeCompare(b))
+        : Array.from(allBedTypes).sort((a, b) => a.localeCompare(b)),
     };
-  }, [hotels]);
+  }, [hotels, hotelTypeEnumValues, roomTypeEnumValues, bedTypeEnumValues]);
 
   const applyHotelFilters = (list: PublicHotel[], filters: HotelSearchFilters | null) => {
     if (!filters) return list;
@@ -131,6 +204,7 @@ const SearchHotels = () => {
     const selectedAmenities = filters.selectedAmenities;
     const selectedHotelTypes = filters.selectedHotelTypes;
     const selectedRoomTypes = filters.selectedRoomTypes;
+    const selectedBedTypes = filters.selectedBedTypes;
 
     const minSelectedRating = selectedRatings.length ? Math.min(...selectedRatings) : null;
 
@@ -150,13 +224,21 @@ const SearchHotels = () => {
         !selectedRoomTypes.length ||
         (hotel.hotel_rooms || []).some((r) => (r.room_type ? selectedRoomTypes.includes(r.room_type) : false));
 
+      const hotelBedTypes = (hotel.hotel_rooms || [])
+        .flatMap((r) => r.hotel_room_details || [])
+        .map((d) => d?.bed_type)
+        .filter((x): x is string => typeof x === "string" && x.length > 0);
+
+      const bedTypesMatch =
+        !selectedBedTypes.length || selectedBedTypes.every((bt) => hotelBedTypes.includes(bt));
+
       const priceMatch = prices.length ? prices.some((p) => p >= minPrice && p <= maxPrice) : false;
 
       // If price filter is "unset" (min==max), treat it as not applied
       const priceFilterActive = Number.isFinite(minPrice) && Number.isFinite(maxPrice) && minPrice !== maxPrice;
       const finalPriceMatch = !priceFilterActive ? true : priceMatch;
 
-      return hotelTypesMatch && ratingMatch && amenitiesMatch && roomTypesMatch && finalPriceMatch;
+      return hotelTypesMatch && ratingMatch && amenitiesMatch && roomTypesMatch && bedTypesMatch && finalPriceMatch;
     });
   };
 
@@ -193,6 +275,7 @@ const SearchHotels = () => {
               hotelTypeOptions={filterOptions.hotelTypeOptions}
               amenityOptions={filterOptions.amenityOptions}
               roomTypeOptions={filterOptions.roomTypeOptions}
+                bedTypeOptions={filterOptions.bedTypeOptions}
               onApply={onApplyFilters}
             />
           </div>

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost, apiGet } from "@/utils/api";
+import { fetchHotelTypeOptions, type EnumOption } from "@/services/publicHotelApi";
 
 interface FormData {
   name: string;
@@ -44,6 +45,7 @@ const AdminAddHotel = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [citiesLoading, setCitiesLoading] = useState(true);
+  const [hotelTypeOptions, setHotelTypeOptions] = useState<EnumOption[]>([]);
   
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -68,8 +70,26 @@ const AdminAddHotel = () => {
   useEffect(() => {
     setIsLoaded(true);
     fetchCities();
+    const run = async () => {
+      try {
+        const opts = await fetchHotelTypeOptions();
+        setHotelTypeOptions(opts);
+      } catch (e) {
+        console.error("Failed to fetch hotel type options:", e);
+      }
+    };
+    run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!hotelTypeOptions.length) return;
+    // If current value is missing from the backend options, default to the first option.
+    if (!hotelTypeOptions.some((o) => o.value === formData.hotel_type)) {
+      setFormData((prev) => ({ ...prev, hotel_type: hotelTypeOptions[0].value }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hotelTypeOptions]);
 
   const fetchCities = useCallback(async () => {
     try {
@@ -269,10 +289,11 @@ const AdminAddHotel = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hotel">Hotel</SelectItem>
-                    <SelectItem value="resort">Resort</SelectItem>
-                    <SelectItem value="boutique">Boutique</SelectItem>
-                    <SelectItem value="hostel">Hostel</SelectItem>
+                    {hotelTypeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
