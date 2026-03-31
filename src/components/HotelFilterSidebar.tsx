@@ -147,7 +147,7 @@ const HotelFilterSidebar = ({
           )}
         </div>
 
-        {/* Rating */}
+       {/* Rating 
         <div className="animate-fade-in-up" style={{ animationDelay: "200ms" }}>
           {renderSectionHeader("rating", "Rating")}
           {expanded.rating && (
@@ -168,8 +168,9 @@ const HotelFilterSidebar = ({
               ))}
             </div>
           )}
-        </div>
+        </div>*/}
 
+        
         {/* Property Type / Hotel Type */}
         <div className="animate-fade-in-up" style={{ animationDelay: "250ms" }}>
           {renderSectionHeader("hotelType", "Hotel Type")}
@@ -182,24 +183,6 @@ const HotelFilterSidebar = ({
                 >
                   <Checkbox checked={selectedHotelTypes.includes(t)} onCheckedChange={() => toggleHotelType(t)} />
                   {t}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Amenities */}
-        <div className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
-          {renderSectionHeader("amenities", "Amenities")}
-          {expanded.amenities && (
-            <div className="space-y-2">
-              {amenityOptions.map((a) => (
-                <label
-                  key={a}
-                  className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
-                >
-                  <Checkbox checked={selectedAmenities.includes(a)} onCheckedChange={() => toggleAmenity(a)} />
-                  {a}
                 </label>
               ))}
             </div>
@@ -236,6 +219,24 @@ const HotelFilterSidebar = ({
                 >
                   <Checkbox checked={selectedBedTypes.includes(t)} onCheckedChange={() => toggleBedType(t)} />
                   {t}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+           {/* Amenities */}
+        <div className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+          {renderSectionHeader("amenities", "Amenities")}
+          {expanded.amenities && (
+            <div className="space-y-2">
+              {amenityOptions.map((a) => (
+                <label
+                  key={a}
+                  className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
+                >
+                  <Checkbox checked={selectedAmenities.includes(a)} onCheckedChange={() => toggleAmenity(a)} />
+                  {a}
                 </label>
               ))}
             </div>
