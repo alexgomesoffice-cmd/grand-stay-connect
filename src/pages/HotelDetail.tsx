@@ -19,9 +19,12 @@ import {
   Shield,
   Clock,
   ChevronRight,
+  ChevronDown,
   Share2,
   Image as ImageIcon,
-  Loader
+  Loader,
+  Cigarette,
+  PawPrint
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,6 +96,21 @@ interface BackendRoomType {
   }>;
 }
 
+interface RoomVariation {
+  room_details_id: number;
+  room_number: string;
+  bed_type: string;
+  max_occupancy: number;
+  smoking_allowed: boolean;
+  pet_allowed: boolean;
+  status: string;
+  images?: string[];
+  amenities?: string[];
+  price_modifier?: number; // additional price on top of base
+  meal_plan?: string;
+  refund_policy?: string;
+}
+
 interface Room {
   id: number;
   name: string;
@@ -103,6 +121,7 @@ interface Room {
   size: number;
   amenities: string[];
   image?: string | null;
+  variations?: RoomVariation[];
 }
 
 interface Hotel {
@@ -122,11 +141,109 @@ interface Hotel {
 
 const amenityIcons: Record<string, typeof Wifi> = {
   "Free WiFi": Wifi,
+  "Free Wi-Fi": Wifi,
   "Gym": Dumbbell,
+  "Gym / Fitness Center": Dumbbell,
   "Valet Parking": Car,
+  "Parking": Car,
   "Fine Dining": UtensilsCrossed,
+  "Restaurant": UtensilsCrossed,
   "Free Parking": Car,
 };
+
+// ============================================================
+// DUMMY / FALLBACK DATA — shown when the backend API is unavailable
+// Based on the project's Prisma seed script structure
+// ============================================================
+const DUMMY_HOTEL: Hotel = {
+  id: 1,
+  name: "Grand Stay Hotel",
+  location: "Dhaka",
+  image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+  price: 95,
+  rating: 4.8,
+  reviews: 234,
+  tags: ["Hotel", "Luxury"],
+  description: "A luxury 5-star hotel in the heart of Dhaka with world-class amenities. Experience unmatched comfort with our premium facilities, attentive service, and prime location near key attractions.",
+  hotelImages: [
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
+    "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=800",
+    "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800",
+  ],
+  amenities: [
+    "Swimming Pool", "Gym / Fitness Center", "Free Wi-Fi", "Parking",
+    "Restaurant", "Bar / Lounge", "Spa & Wellness", "Room Service",
+    "24/7 Front Desk", "Laundry Service", "Airport Shuttle", "Elevator",
+  ],
+  rooms: [
+    {
+      id: 1,
+      name: "Deluxe Room",
+      description: "Spacious room with queen bed and city view",
+      price: 150.50,
+      capacity: 2,
+      beds: "Queen",
+      size: 35,
+      amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "City View", "Private Bathroom"],
+      image: null,
+      variations: [
+        { room_details_id: 1, room_number: "101", bed_type: "Queen", max_occupancy: 2, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Bathrobe", "Safe"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
+        { room_details_id: 2, room_number: "102", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Bathrobe"], price_modifier: 10, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_id: 3, room_number: "103", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "UNAVAILABLE", images: ["https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600"], amenities: ["Free Wi-Fi", "Room Service"], price_modifier: 20, meal_plan: "Breakfast & dinner included", refund_policy: "Partially refundable" },
+        { room_details_id: 4, room_number: "104", bed_type: "King", max_occupancy: 2, smoking_allowed: true, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe"], price_modifier: 45, meal_plan: "All inclusive", refund_policy: "Free cancellation" },
+      ],
+    },
+    {
+      id: 2,
+      name: "Standard Room",
+      description: "Compact room, perfect for business travelers",
+      price: 95,
+      capacity: 2,
+      beds: "Queen",
+      size: 25,
+      amenities: ["Free Wi-Fi", "Work Desk"],
+      image: null,
+      variations: [
+        { room_details_id: 6, room_number: "201", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "Work Desk", "TV"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
+        { room_details_id: 7, room_number: "202", bed_type: "Twin", max_occupancy: 2, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600", "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "Work Desk", "TV", "Mini Bar"], price_modifier: 15, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_id: 8, room_number: "203", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600"], amenities: ["Free Wi-Fi", "Work Desk"], price_modifier: 25, meal_plan: "Breakfast & dinner included", refund_policy: "Free cancellation" },
+      ],
+    },
+    {
+      id: 3,
+      name: "Suite",
+      description: "Premium suite with separate living area and marble bathroom",
+      price: 299.99,
+      capacity: 4,
+      beds: "King",
+      size: 65,
+      amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Room Service", "Bathrobe"],
+      image: null,
+      variations: [
+        { room_details_id: 11, room_number: "301", bed_type: "King", max_occupancy: 4, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1591088398332-8a7791972843?w=600", "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"], amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe", "Room Service"], price_modifier: 0, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_id: 12, room_number: "302", bed_type: "King", max_occupancy: 4, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1591088398332-8a7791972843?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe", "Room Service", "Private Pool"], price_modifier: 50, meal_plan: "All inclusive", refund_policy: "Free cancellation" },
+      ],
+    },
+    {
+      id: 4,
+      name: "Budget Room",
+      description: "Budget-friendly room with essential amenities",
+      price: 75,
+      capacity: 2,
+      beds: "Twin",
+      size: 20,
+      amenities: ["Free Wi-Fi"],
+      image: null,
+      variations: [
+        { room_details_id: 16, room_number: "401", bed_type: "Twin", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "TV"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
+        { room_details_id: 17, room_number: "402", bed_type: "Twin", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600"], amenities: ["Free Wi-Fi", "TV", "Work Desk"], price_modifier: 10, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_id: 18, room_number: "403", bed_type: "Single", max_occupancy: 1, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi"], price_modifier: -10, meal_plan: "Room only", refund_policy: "Non-refundable" },
+      ],
+    },
+  ],
+};
+// ============================================================
 
 const HotelDetail = () => {
   const { id } = useParams();
@@ -141,6 +258,9 @@ const HotelDetail = () => {
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedRoomType, setExpandedRoomType] = useState<number | null>(null);
+  const [variationImageIndices, setVariationImageIndices] = useState<Record<number, number>>({});
+  const [selectedRoomCounts, setSelectedRoomCounts] = useState<Record<number, number>>({});
 
   // Fetch hotel data from backend
   useEffect(() => {
@@ -245,11 +365,14 @@ const HotelDetail = () => {
           setSelectedRoom(null);
           setHotel(transformedHotel);
         } else {
-          setError("Failed to load hotel data");
+          // Fallback to dummy data when API returns unsuccessful response
+          console.warn("API returned unsuccessful response, using dummy data");
+          setHotel(DUMMY_HOTEL);
         }
       } catch (err) {
-        console.error("Error fetching hotel:", err);
-        setError("Unable to load hotel information. Please try again.");
+        // Fallback to dummy data when backend is unreachable
+        console.warn("Backend unreachable, using dummy data:", err);
+        setHotel(DUMMY_HOTEL);
       } finally {
         setLoading(false);
       }
@@ -491,109 +614,326 @@ const HotelDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Rooms Section */}
+              {/* Rooms Section — Booking.com Style */}
               <div className="animate-fade-in-up" style={{ animationDelay: "200ms" }}>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold">Available Rooms</h2>
-                  <span className="text-muted-foreground">{hotel.rooms.length} room types</span>
+                  <span className="text-sm text-muted-foreground">{hotel.rooms.length} room type{hotel.rooms.length !== 1 ? "s" : ""}</span>
                 </div>
                 {hotel.rooms.length === 0 ? (
                   <div className="p-6 rounded-xl bg-secondary/30 border border-border/50 text-center text-muted-foreground animate-fade-in">
                     No room found for this hotel
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {hotel.rooms.map((room, index) => (
-                      <Card
-                        key={room.id}
-                        className={cn(
-                          "glass border-border/50 transition-all duration-500 cursor-pointer group overflow-hidden",
-                          selectedRoom?.id === room.id
-                            ? "border-primary ring-2 ring-primary/20 scale-[1.01]"
-                            : "hover:border-primary/50 hover:scale-[1.005]"
-                        )}
-                        onClick={() => setSelectedRoom(room)}
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <CardContent className="p-0 flex flex-col sm:flex-row">
-                          {/* Room Image - Left Side */}
-                          {room.image && (
-                            <div className="w-full sm:w-48 flex-shrink-0 h-48 sm:h-auto overflow-hidden rounded-tl-lg sm:rounded-l-lg">
-                              <img
-                                src={room.image}
-                                alt={room.name}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                onError={(e) => {
-                                  // Hide image if it fails to load
-                                  (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
-                                }}
-                              />
+                  <div className="space-y-5">
+                    {hotel.rooms.map((room, index) => {
+                      const isExpanded = expandedRoomType === room.id;
+                      const availableVariations = room.variations?.filter(v => v.status === "AVAILABLE") || [];
+
+                      return (
+                        <div
+                          key={room.id}
+                          className="animate-fade-in"
+                          style={{ animationDelay: `${index * 80}ms` }}
+                        >
+                          {/* Room Type Header Card — no image, common properties */}
+                          <Card
+                            className={cn(
+                              "border-border/50 transition-all duration-500 overflow-hidden cursor-pointer group",
+                              isExpanded ? "border-primary/60 shadow-lg shadow-primary/5" : "hover:border-primary/30 hover:shadow-md",
+                              selectedRoom?.id === room.id && "ring-2 ring-primary/20"
+                            )}
+                            onClick={() => setExpandedRoomType(isExpanded ? null : room.id)}
+                          >
+                            <CardContent className="p-5">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
+                                      <Bed className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                      <h3 className="text-lg font-bold">{room.name}</h3>
+                                      <p className="text-sm text-muted-foreground">{room.description}</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1.5">
+                                      <Maximize className="h-4 w-4" />
+                                      <span>{room.size} m²</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <Users className="h-4 w-4" />
+                                      <span>Up to {room.capacity} guests</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <Bed className="h-4 w-4" />
+                                      <span>{room.beds} bed</span>
+                                    </div>
+                                    {availableVariations.length > 0 && (
+                                      <span className="px-2.5 py-0.5 rounded-full bg-accent/10 text-accent text-xs font-semibold">
+                                        {availableVariations.length} available
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Common amenities chips */}
+                                  {room.amenities.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mt-3">
+                                      {room.amenities.slice(0, 6).map((amenity, ai) => (
+                                        <span key={`${amenity}-${ai}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/50 text-xs text-muted-foreground">
+                                          <Check className="w-3 h-3 text-accent" />
+                                          {amenity}
+                                        </span>
+                                      ))}
+                                      {room.amenities.length > 6 && (
+                                        <span className="px-2.5 py-1 rounded-full bg-secondary/50 text-xs text-muted-foreground">
+                                          +{room.amenities.length - 6} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-4 sm:flex-col sm:items-end">
+                                  <div className="text-right">
+                                    <div className="text-sm text-muted-foreground">from</div>
+                                    <div className="text-2xl font-bold text-gradient">${room.price}</div>
+                                    <div className="text-xs text-muted-foreground">per night</div>
+                                  </div>
+                                  <div className={cn(
+                                    "w-8 h-8 rounded-full border border-border/50 flex items-center justify-center transition-all duration-300",
+                                    isExpanded ? "bg-primary text-primary-foreground rotate-180" : "bg-secondary/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                                  )}>
+                                    <ChevronDown className="w-4 h-4" />
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* Expanded Variations — Individual Room Cards */}
+                          {isExpanded && room.variations && room.variations.length > 0 && (
+                            <div className="mt-2 ml-4 border-l-2 border-primary/20 pl-4 space-y-3 animate-fade-in">
+                              {room.variations.map((variation, vi) => {
+                                const variationPrice = room.price + (variation.price_modifier || 0);
+                                const currentImgIdx = variationImageIndices[variation.room_details_id] || 0;
+                                const images = variation.images || [];
+                                const roomCount = selectedRoomCounts[variation.room_details_id] || 0;
+                                const isAvailable = variation.status === "AVAILABLE";
+
+                                const nextImage = (e: React.MouseEvent) => {
+                                  e.stopPropagation();
+                                  if (images.length <= 1) return;
+                                  setVariationImageIndices(prev => ({
+                                    ...prev,
+                                    [variation.room_details_id]: (currentImgIdx + 1) % images.length
+                                  }));
+                                };
+
+                                const prevImage = (e: React.MouseEvent) => {
+                                  e.stopPropagation();
+                                  if (images.length <= 1) return;
+                                  setVariationImageIndices(prev => ({
+                                    ...prev,
+                                    [variation.room_details_id]: (currentImgIdx - 1 + images.length) % images.length
+                                  }));
+                                };
+
+                                const updateRoomCount = (count: number) => {
+                                  setSelectedRoomCounts(prev => ({
+                                    ...prev,
+                                    [variation.room_details_id]: Math.max(0, Math.min(5, count))
+                                  }));
+                                };
+
+                                return (
+                                  <Card
+                                    key={variation.room_details_id}
+                                    className={cn(
+                                      "overflow-hidden border-border/40 transition-all duration-300",
+                                      isAvailable ? "hover:shadow-md hover:border-primary/30" : "opacity-60",
+                                      roomCount > 0 && "border-primary ring-1 ring-primary/20"
+                                    )}
+                                    style={{ animationDelay: `${vi * 60}ms` }}
+                                  >
+                                    <CardContent className="p-0">
+                                      <div className="flex flex-col md:flex-row">
+                                        {/* Image Slider */}
+                                        {images.length > 0 && (
+                                          <div className="relative w-full md:w-64 h-48 md:h-auto flex-shrink-0 overflow-hidden group/img">
+                                            <img
+                                              src={images[currentImgIdx]}
+                                              alt={`Room ${variation.room_number}`}
+                                              className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105"
+                                            />
+                                            {/* Image counter */}
+                                            {images.length > 1 && (
+                                              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                                                {images.map((_, imgIdx) => (
+                                                  <div
+                                                    key={imgIdx}
+                                                    className={cn(
+                                                      "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                                                      imgIdx === currentImgIdx ? "bg-white w-4" : "bg-white/50"
+                                                    )}
+                                                  />
+                                                ))}
+                                              </div>
+                                            )}
+                                            {/* Nav arrows */}
+                                            {images.length > 1 && (
+                                              <>
+                                                <button
+                                                  onClick={prevImage}
+                                                  className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200 hover:bg-background hover:scale-110"
+                                                >
+                                                  <ArrowLeft className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                  onClick={nextImage}
+                                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200 hover:bg-background hover:scale-110"
+                                                >
+                                                  <ChevronRight className="w-3.5 h-3.5" />
+                                                </button>
+                                              </>
+                                            )}
+                                            {/* Status badge */}
+                                            {!isAvailable && (
+                                              <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-destructive/90 text-destructive-foreground text-xs font-medium backdrop-blur-sm">
+                                                {variation.status}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Room Details */}
+                                        <div className="flex-1 p-4 flex flex-col md:flex-row gap-4">
+                                          {/* Info Column */}
+                                          <div className="flex-1 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-sm font-semibold">Room {variation.room_number}</span>
+                                              <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/60 text-muted-foreground">{variation.bed_type} Bed</span>
+                                            </div>
+
+                                            {/* Room properties */}
+                                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                              <div className="flex items-center gap-1">
+                                                <Users className="w-3.5 h-3.5" />
+                                                <span>{variation.max_occupancy} guest{variation.max_occupancy > 1 ? "s" : ""}</span>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <Cigarette className={cn("w-3.5 h-3.5", variation.smoking_allowed ? "text-accent" : "text-muted-foreground/40")} />
+                                                <span>{variation.smoking_allowed ? "Smoking" : "No smoking"}</span>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <PawPrint className={cn("w-3.5 h-3.5", variation.pet_allowed ? "text-accent" : "text-muted-foreground/40")} />
+                                                <span>{variation.pet_allowed ? "Pet friendly" : "No pets"}</span>
+                                              </div>
+                                            </div>
+
+                                            {/* Room amenities */}
+                                            {variation.amenities && variation.amenities.length > 0 && (
+                                              <div className="flex flex-wrap gap-1">
+                                                {variation.amenities.map((amenity, ai) => (
+                                                  <span key={`${amenity}-${ai}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary/40 text-xs text-muted-foreground">
+                                                    <Check className="w-2.5 h-2.5 text-accent" />
+                                                    {amenity}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {/* Price Column */}
+                                          <div className="flex flex-col items-start md:items-center justify-between gap-2 md:min-w-[140px] md:border-l md:border-border/30 md:pl-4">
+                                            <div className="text-center">
+                                              <div className="text-xl font-bold text-gradient">${variationPrice}</div>
+                                              <div className="text-xs text-muted-foreground">per night</div>
+                                              {variation.price_modifier !== undefined && variation.price_modifier > 0 && (
+                                                <div className="text-xs text-muted-foreground mt-0.5">+${variation.price_modifier} taxes</div>
+                                              )}
+                                            </div>
+
+                                            {/* Meal plan */}
+                                            {variation.meal_plan && (
+                                              <div className={cn(
+                                                "text-xs font-medium px-2 py-1 rounded-md",
+                                                variation.meal_plan.includes("breakfast") || variation.meal_plan.includes("inclusive")
+                                                  ? "bg-accent/10 text-accent"
+                                                  : "bg-secondary/50 text-muted-foreground"
+                                              )}>
+                                                {variation.meal_plan === "Room only" ? "🛏️" : "🍳"} {variation.meal_plan}
+                                              </div>
+                                            )}
+
+                                            {/* Refund policy */}
+                                            {variation.refund_policy && (
+                                              <div className={cn(
+                                                "text-xs font-medium",
+                                                variation.refund_policy === "Free cancellation" ? "text-accent" :
+                                                variation.refund_policy === "Non-refundable" ? "text-destructive" :
+                                                "text-muted-foreground"
+                                              )}>
+                                                {variation.refund_policy === "Non-refundable" && "⊘ "}
+                                                {variation.refund_policy === "Free cancellation" && "✓ "}
+                                                {variation.refund_policy}
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {/* Select Column */}
+                                          <div className="flex flex-row md:flex-col items-center gap-2 md:min-w-[100px] md:border-l md:border-border/30 md:pl-4 md:justify-center">
+                                            {isAvailable ? (
+                                              <>
+                                                <div className="flex items-center gap-1">
+                                                  <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    onClick={(e) => { e.stopPropagation(); updateRoomCount(roomCount - 1); }}
+                                                    disabled={roomCount <= 0}
+                                                  >
+                                                    <span className="text-sm">−</span>
+                                                  </Button>
+                                                  <span className="w-6 text-center font-semibold text-sm">{roomCount}</span>
+                                                  <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    onClick={(e) => { e.stopPropagation(); updateRoomCount(roomCount + 1); }}
+                                                    disabled={roomCount >= 5}
+                                                  >
+                                                    <span className="text-sm">+</span>
+                                                  </Button>
+                                                </div>
+                                                <Button
+                                                  variant={selectedRoom?.id === room.id ? "hero" : "default"}
+                                                  size="sm"
+                                                  className="text-xs h-8 w-full"
+                                                  onClick={(e) => { e.stopPropagation(); setSelectedRoom(room); }}
+                                                >
+                                                  {selectedRoom?.id === room.id ? (
+                                                    <><Check className="w-3 h-3 mr-1" /> Selected</>
+                                                  ) : "Select"}
+                                                </Button>
+                                              </>
+                                            ) : (
+                                              <span className="text-xs text-destructive font-medium">Unavailable</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
                             </div>
                           )}
-
-                          {/* Room Details - Right Side */}
-                          <div className="p-6 flex-1 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
-                                  {room.name}
-                                </h3>
-                                {selectedRoom?.id === room.id && (
-                                  <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1 animate-scale-in">
-                                    <Check className="w-3 h-3" />
-                                    Selected
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-muted-foreground text-sm mb-4">{room.description}</p>
-
-                              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                                <div className="flex items-center gap-1.5 group/item">
-                                  <Users className="h-4 w-4 group-hover/item:text-primary transition-colors" />
-                                  <span>Up to {room.capacity} guests</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 group/item">
-                                  <Bed className="h-4 w-4 group-hover/item:text-primary transition-colors" />
-                                  <span>{room.beds}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 group/item">
-                                  <Maximize className="h-4 w-4 group-hover/item:text-primary transition-colors" />
-                                  <span>{room.size} m²</span>
-                                </div>
-                              </div>
-
-                              {/* Room Amenities */}
-                              {room.amenities && room.amenities.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                  {room.amenities.map((amenity, amenityIndex) => (
-                                    <span
-                                      key={`${amenity}-${amenityIndex}`}
-                                      className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 text-xs font-medium text-foreground hover:from-accent/30 hover:to-primary/30 transition-all duration-300 whitespace-nowrap"
-                                      style={{ animationDelay: `${amenityIndex * 30}ms` }}
-                                    >
-                                      {amenity}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="text-right flex flex-col items-end">
-                              <div className="text-3xl font-bold text-gradient">${room.price}</div>
-                              <div className="text-sm text-muted-foreground mb-3">per night</div>
-                              <Button
-                                variant={selectedRoom?.id === room.id ? "hero" : "outline"}
-                                size="sm"
-                                className="gap-1 group/btn"
-                              >
-                                {selectedRoom?.id === room.id ? "Selected" : "Select"}
-                                <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
