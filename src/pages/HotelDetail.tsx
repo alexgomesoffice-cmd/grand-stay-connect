@@ -90,20 +90,27 @@ interface BackendRoomType {
     };
   }>;
   hotel_room_details?: Array<{
-    max_occupancy?: number;
-    bed_type?: string;
+    hotel_room_details_id: number;
+    room_number: string;
     room_size?: string;
+    bed_type: string;
+    max_occupancy: number;
+    smoking_allowed: boolean;
+    pet_allowed: boolean;
+    status: string;
+    created_at: string;
+    updated_at: string;
   }>;
 }
 
 interface RoomVariation {
-  room_details_id: number;
-  room_number: string;
   bed_type: string;
   max_occupancy: number;
   smoking_allowed: boolean;
   pet_allowed: boolean;
   status: string;
+  available_count: number;
+  room_details_ids: number[];
   images?: string[];
   amenities?: string[];
   price_modifier?: number; // additional price on top of base
@@ -188,10 +195,10 @@ const DUMMY_HOTEL: Hotel = {
       amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "City View", "Private Bathroom"],
       image: null,
       variations: [
-        { room_details_id: 1, room_number: "101", bed_type: "Queen", max_occupancy: 2, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Bathrobe", "Safe"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
-        { room_details_id: 2, room_number: "102", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Bathrobe"], price_modifier: 10, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
-        { room_details_id: 3, room_number: "103", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "UNAVAILABLE", images: ["https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600"], amenities: ["Free Wi-Fi", "Room Service"], price_modifier: 20, meal_plan: "Breakfast & dinner included", refund_policy: "Partially refundable" },
-        { room_details_id: 4, room_number: "104", bed_type: "King", max_occupancy: 2, smoking_allowed: true, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe"], price_modifier: 45, meal_plan: "All inclusive", refund_policy: "Free cancellation" },
+        { room_details_ids: [1], available_count: 1, bed_type: "Queen", max_occupancy: 2, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Bathrobe", "Safe"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
+        { room_details_ids: [2], available_count: 1, bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Bathrobe"], price_modifier: 10, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_ids: [3], available_count: 1, bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "UNAVAILABLE", images: ["https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600"], amenities: ["Free Wi-Fi", "Room Service"], price_modifier: 20, meal_plan: "Breakfast & dinner included", refund_policy: "Partially refundable" },
+        { room_details_ids: [4], available_count: 1, bed_type: "King", max_occupancy: 2, smoking_allowed: true, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Room Service", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe"], price_modifier: 45, meal_plan: "All inclusive", refund_policy: "Free cancellation" },
       ],
     },
     {
@@ -205,9 +212,9 @@ const DUMMY_HOTEL: Hotel = {
       amenities: ["Free Wi-Fi", "Work Desk"],
       image: null,
       variations: [
-        { room_details_id: 6, room_number: "201", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "Work Desk", "TV"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
-        { room_details_id: 7, room_number: "202", bed_type: "Twin", max_occupancy: 2, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600", "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "Work Desk", "TV", "Mini Bar"], price_modifier: 15, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
-        { room_details_id: 8, room_number: "203", bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600"], amenities: ["Free Wi-Fi", "Work Desk"], price_modifier: 25, meal_plan: "Breakfast & dinner included", refund_policy: "Free cancellation" },
+        { room_details_ids: [6], available_count: 1, bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "Work Desk", "TV"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
+        { room_details_ids: [7], available_count: 1, bed_type: "Twin", max_occupancy: 2, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600", "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "Work Desk", "TV", "Mini Bar"], price_modifier: 15, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_ids: [8], available_count: 1, bed_type: "Queen", max_occupancy: 2, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600"], amenities: ["Free Wi-Fi", "Work Desk"], price_modifier: 25, meal_plan: "Breakfast & dinner included", refund_policy: "Free cancellation" },
       ],
     },
     {
@@ -221,8 +228,8 @@ const DUMMY_HOTEL: Hotel = {
       amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Room Service", "Bathrobe"],
       image: null,
       variations: [
-        { room_details_id: 11, room_number: "301", bed_type: "King", max_occupancy: 4, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1591088398332-8a7791972843?w=600", "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"], amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe", "Room Service"], price_modifier: 0, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
-        { room_details_id: 12, room_number: "302", bed_type: "King", max_occupancy: 4, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1591088398332-8a7791972843?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe", "Room Service", "Private Pool"], price_modifier: 50, meal_plan: "All inclusive", refund_policy: "Free cancellation" },
+        { room_details_ids: [11], available_count: 1, bed_type: "King", max_occupancy: 4, smoking_allowed: false, pet_allowed: true, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1591088398332-8a7791972843?w=600", "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600", "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"], amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe", "Room Service"], price_modifier: 0, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_ids: [12], available_count: 1, bed_type: "King", max_occupancy: 4, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1591088398332-8a7791972843?w=600", "https://images.unsplash.com/photo-1590490360182-c33d955f4e24?w=600"], amenities: ["Free Wi-Fi", "Living Area", "Mini Bar", "Jacuzzi", "Bathrobe", "Safe", "Room Service", "Private Pool"], price_modifier: 50, meal_plan: "All inclusive", refund_policy: "Free cancellation" },
       ],
     },
     {
@@ -236,9 +243,9 @@ const DUMMY_HOTEL: Hotel = {
       amenities: ["Free Wi-Fi"],
       image: null,
       variations: [
-        { room_details_id: 16, room_number: "401", bed_type: "Twin", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "TV"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
-        { room_details_id: 17, room_number: "402", bed_type: "Twin", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600"], amenities: ["Free Wi-Fi", "TV", "Work Desk"], price_modifier: 10, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
-        { room_details_id: 18, room_number: "403", bed_type: "Single", max_occupancy: 1, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi"], price_modifier: -10, meal_plan: "Room only", refund_policy: "Non-refundable" },
+        { room_details_ids: [16], available_count: 1, bed_type: "Twin", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi", "TV"], price_modifier: 0, meal_plan: "Room only", refund_policy: "Non-refundable" },
+        { room_details_ids: [17], available_count: 1, bed_type: "Twin", max_occupancy: 2, smoking_allowed: false, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600"], amenities: ["Free Wi-Fi", "TV", "Work Desk"], price_modifier: 10, meal_plan: "Continental breakfast included", refund_policy: "Partially refundable" },
+        { room_details_ids: [18], available_count: 1, bed_type: "Single", max_occupancy: 1, smoking_allowed: true, pet_allowed: false, status: "AVAILABLE", images: ["https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=600"], amenities: ["Free Wi-Fi"], price_modifier: -10, meal_plan: "Room only", refund_policy: "Non-refundable" },
       ],
     },
   ],
@@ -259,8 +266,8 @@ const HotelDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedRoomType, setExpandedRoomType] = useState<number | null>(null);
-  const [variationImageIndices, setVariationImageIndices] = useState<Record<number, number>>({});
-  const [selectedRoomCounts, setSelectedRoomCounts] = useState<Record<number, number>>({});
+  const [variationImageIndices, setVariationImageIndices] = useState<Record<string, number>>({});
+  const [selectedRoomCounts, setSelectedRoomCounts] = useState<Record<string, number>>({});
 
   // Fetch hotel data from backend
   useEffect(() => {
@@ -302,17 +309,55 @@ const HotelDetail = () => {
               const coverRoomImg = roomImages.find(img => img.is_cover);
               const roomImageUrl = coverRoomImg?.image_url || (roomImages.length > 0 ? roomImages[0].image_url : null);
 
-              // Get room details from hotel_room_details array (if available)
-              const roomDetail = backendRoom.hotel_room_details?.[0];
-              const capacity = roomDetail?.max_occupancy || 2;
-              const beds = roomDetail?.bed_type || "1 Queen Bed";
-              const roomSize = roomDetail?.room_size ? parseInt(roomDetail.room_size) : (backendRoom.room_size ? parseInt(backendRoom.room_size) : 30);
-
               // Get room amenities from the room_amenities array - ONLY use room amenities
               const roomAmenities = backendRoom.room_amenities?.map(ra => ra.amenity.name) || [];
               
               // Debug: log the amenities to see what we're getting
               console.log(`Room "${backendRoom.room_type}" amenities:`, roomAmenities, "room_amenities object:", backendRoom.room_amenities);
+
+              // Group physical rooms by their variation properties
+              const variationGroups: { [key: string]: RoomVariation } = {};
+              
+              if (backendRoom.hotel_room_details && backendRoom.hotel_room_details.length > 0) {
+                backendRoom.hotel_room_details.forEach((detail) => {
+                  // Create a unique key for this variation based on bed_type, max_occupancy, smoking_allowed, pet_allowed
+                  const variationKey = `${detail.bed_type}-${detail.max_occupancy}-${detail.smoking_allowed}-${detail.pet_allowed}`;
+                  
+                  if (!variationGroups[variationKey]) {
+                    variationGroups[variationKey] = {
+                      bed_type: detail.bed_type,
+                      max_occupancy: detail.max_occupancy,
+                      smoking_allowed: detail.smoking_allowed,
+                      pet_allowed: detail.pet_allowed,
+                      status: detail.status,
+                      available_count: 0,
+                      room_details_ids: [],
+                      images: roomImages.map(img => img.image_url), // Use room type images for variations
+                      amenities: roomAmenities, // Use room type amenities
+                      price_modifier: 0, // Default, can be customized later
+                      meal_plan: "Room only", // Default
+                      refund_policy: "Non-refundable", // Default
+                    };
+                  }
+                  
+                  // Add this room to the variation group
+                  variationGroups[variationKey].room_details_ids.push(detail.hotel_room_details_id);
+                  
+                  // Count available rooms
+                  if (detail.status === "AVAILABLE") {
+                    variationGroups[variationKey].available_count++;
+                  }
+                });
+              }
+
+              // Convert variation groups to array
+              const variations: RoomVariation[] = Object.values(variationGroups);
+
+              // Get common properties from the first variation or defaults
+              const firstVariation = variations[0];
+              const capacity = firstVariation?.max_occupancy || 2;
+              const beds = firstVariation?.bed_type || "1 Queen Bed";
+              const roomSize = backendRoom.room_size ? parseInt(backendRoom.room_size) : 30;
 
               const room: Room = {
                 id: backendRoom.hotel_room_id,
@@ -324,6 +369,7 @@ const HotelDetail = () => {
                 size: roomSize,
                 amenities: roomAmenities, // Use ONLY room amenities, even if empty
                 image: roomImageUrl,
+                variations: variations.length > 0 ? variations : undefined,
               };
 
               transformedRooms.push(room);
@@ -390,9 +436,29 @@ const HotelDetail = () => {
   }, [checkIn, checkOut]);
 
   const totalPrice = useMemo(() => {
-    const roomPrice = selectedRoom?.price || hotel?.price || 0;
-    return roomPrice * nights;
-  }, [selectedRoom, hotel, nights]);
+    let total = 0;
+    
+    // Calculate price for selected rooms across all variations
+    Object.entries(selectedRoomCounts).forEach(([variationKey, count]) => {
+      if (count > 0 && selectedRoom?.variations) {
+        // Find the variation that matches this key
+        const variation = selectedRoom.variations.find(v => 
+          `${v.bed_type}-${v.max_occupancy}-${v.smoking_allowed}-${v.pet_allowed}` === variationKey
+        );
+        if (variation) {
+          const variationPrice = selectedRoom.price + (variation.price_modifier || 0);
+          total += variationPrice * count;
+        }
+      }
+    });
+    
+    // If no rooms selected, use base room price
+    if (total === 0) {
+      total = (selectedRoom?.price || hotel?.price || 0);
+    }
+    
+    return total * nights;
+  }, [selectedRoom, selectedRoomCounts, hotel, nights]);
 
   if (loading) {
     return (
@@ -713,22 +779,24 @@ const HotelDetail = () => {
                             </CardContent>
                           </Card>
 
-                          {/* Expanded Variations — Individual Room Cards */}
+                          {/* Expanded Variations — Grouped Room Cards */}
                           {isExpanded && room.variations && room.variations.length > 0 && (
                             <div className="mt-2 ml-4 border-l-2 border-primary/20 pl-4 space-y-3 animate-fade-in">
                               {room.variations.map((variation, vi) => {
+                                // Create a unique key for this variation
+                                const variationKey = `${variation.bed_type}-${variation.max_occupancy}-${variation.smoking_allowed}-${variation.pet_allowed}`;
                                 const variationPrice = room.price + (variation.price_modifier || 0);
-                                const currentImgIdx = variationImageIndices[variation.room_details_id] || 0;
+                                const currentImgIdx = variationImageIndices[variationKey] || 0;
                                 const images = variation.images || [];
-                                const roomCount = selectedRoomCounts[variation.room_details_id] || 0;
-                                const isAvailable = variation.status === "AVAILABLE";
+                                const roomCount = selectedRoomCounts[variationKey] || 0;
+                                const isAvailable = variation.available_count > 0;
 
                                 const nextImage = (e: React.MouseEvent) => {
                                   e.stopPropagation();
                                   if (images.length <= 1) return;
                                   setVariationImageIndices(prev => ({
                                     ...prev,
-                                    [variation.room_details_id]: (currentImgIdx + 1) % images.length
+                                    [variationKey]: (currentImgIdx + 1) % images.length
                                   }));
                                 };
 
@@ -737,20 +805,20 @@ const HotelDetail = () => {
                                   if (images.length <= 1) return;
                                   setVariationImageIndices(prev => ({
                                     ...prev,
-                                    [variation.room_details_id]: (currentImgIdx - 1 + images.length) % images.length
+                                    [variationKey]: (currentImgIdx - 1 + images.length) % images.length
                                   }));
                                 };
 
                                 const updateRoomCount = (count: number) => {
                                   setSelectedRoomCounts(prev => ({
                                     ...prev,
-                                    [variation.room_details_id]: Math.max(0, Math.min(5, count))
+                                    [variationKey]: Math.max(0, Math.min(variation.available_count, count))
                                   }));
                                 };
 
                                 return (
                                   <Card
-                                    key={variation.room_details_id}
+                                    key={variationKey}
                                     className={cn(
                                       "overflow-hidden border-border/40 transition-all duration-300",
                                       isAvailable ? "hover:shadow-md hover:border-primary/30" : "opacity-60",
@@ -760,61 +828,76 @@ const HotelDetail = () => {
                                   >
                                     <CardContent className="p-0">
                                       <div className="flex flex-col md:flex-row">
-                                        {/* Image Slider */}
-                                        {images.length > 0 && (
-                                          <div className="relative w-full md:w-64 h-48 md:h-auto flex-shrink-0 overflow-hidden group/img">
-                                            <img
-                                              src={images[currentImgIdx]}
-                                              alt={`Room ${variation.room_number}`}
-                                              className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105"
-                                            />
-                                            {/* Image counter */}
-                                            {images.length > 1 && (
-                                              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-                                                {images.map((_, imgIdx) => (
-                                                  <div
-                                                    key={imgIdx}
-                                                    className={cn(
-                                                      "w-1.5 h-1.5 rounded-full transition-all duration-300",
-                                                      imgIdx === currentImgIdx ? "bg-white w-4" : "bg-white/50"
-                                                    )}
-                                                  />
-                                                ))}
-                                              </div>
-                                            )}
-                                            {/* Nav arrows */}
-                                            {images.length > 1 && (
-                                              <>
-                                                <button
-                                                  onClick={prevImage}
-                                                  className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200 hover:bg-background hover:scale-110"
-                                                >
-                                                  <ArrowLeft className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                  onClick={nextImage}
-                                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200 hover:bg-background hover:scale-110"
-                                                >
-                                                  <ChevronRight className="w-3.5 h-3.5" />
-                                                </button>
-                                              </>
-                                            )}
-                                            {/* Status badge */}
-                                            {!isAvailable && (
-                                              <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-destructive/90 text-destructive-foreground text-xs font-medium backdrop-blur-sm">
-                                                {variation.status}
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
+                                        {/* Image Slider - Left Side */}
+                                        <div className="relative w-full md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden group/img bg-secondary/10">
+                                          {images.length > 0 ? (
+                                            <>
+                                              <img
+                                                src={images[currentImgIdx]}
+                                                alt={`${variation.bed_type} room`}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105"
+                                              />
+                                              {/* Image counter */}
+                                              {images.length > 1 && (
+                                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                                                  {images.map((_, imgIdx) => (
+                                                    <div
+                                                      key={imgIdx}
+                                                      className={cn(
+                                                        "w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer",
+                                                        imgIdx === currentImgIdx ? "bg-white w-4" : "bg-white/50"
+                                                      )}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setVariationImageIndices(prev => ({
+                                                          ...prev,
+                                                          [variationKey]: imgIdx
+                                                        }));
+                                                      }}
+                                                    />
+                                                  ))}
+                                                </div>
+                                              )}
+                                              {/* Nav arrows */}
+                                              {images.length > 1 && (
+                                                <>
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); prevImage(e); }}
+                                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200 hover:bg-background hover:scale-110"
+                                                  >
+                                                    <ArrowLeft className="w-4 h-4" />
+                                                  </button>
+                                                  <button
+                                                    onClick={(e) => { e.stopPropagation(); nextImage(e); }}
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all duration-200 hover:bg-background hover:scale-110"
+                                                  >
+                                                    <ChevronRight className="w-4 h-4" />
+                                                  </button>
+                                                </>
+                                              )}
+                                              {/* Status badge */}
+                                              {!isAvailable && (
+                                                <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-destructive/90 text-destructive-foreground text-xs font-medium backdrop-blur-sm">
+                                                  {variation.status}
+                                                </div>
+                                              )}
+                                            </>
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                              <ImageIcon className="w-12 h-12 text-muted-foreground/40" />
+                                            </div>
+                                          )}
+                                        </div>
 
                                         {/* Room Details */}
                                         <div className="flex-1 p-4 flex flex-col md:flex-row gap-4">
                                           {/* Info Column */}
                                           <div className="flex-1 space-y-3">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-sm font-semibold">Room {variation.room_number}</span>
-                                              <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/60 text-muted-foreground">{variation.bed_type} Bed</span>
+                                              <span className="text-sm font-semibold">{variation.bed_type} Bed</span>
+                                              <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/60 text-muted-foreground">
+                                                {variation.available_count} available
+                                              </span>
                                             </div>
 
                                             {/* Room properties */}
@@ -903,7 +986,7 @@ const HotelDetail = () => {
                                                     size="icon"
                                                     className="h-7 w-7"
                                                     onClick={(e) => { e.stopPropagation(); updateRoomCount(roomCount + 1); }}
-                                                    disabled={roomCount >= 5}
+                                                    disabled={roomCount >= variation.available_count}
                                                   >
                                                     <span className="text-sm">+</span>
                                                   </Button>
