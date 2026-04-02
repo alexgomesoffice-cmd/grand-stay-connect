@@ -31,10 +31,11 @@ interface BookingConfirmationProps {
   isOpen: boolean;
   onClose: () => void;
   hotel: any;
-  room: any;
+  room?: any; // Made room optional
   checkIn: Date;
   checkOut: Date;
   guests: number;
+  selectedRoomCounts: Record<string, number>; // Added selectedRoomCounts prop
 }
 
 const BookingConfirmation = ({
@@ -45,6 +46,7 @@ const BookingConfirmation = ({
   checkIn,
   checkOut,
   guests,
+  selectedRoomCounts,
 }: BookingConfirmationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -112,7 +114,7 @@ const BookingConfirmation = ({
           rooms: [
             {
               hotel_room_id: room.id || 1,
-              quantity: 1,
+              quantity: selectedRoomCounts[room.id] || 1,
             },
           ],
           special_request: guestInfo.specialRequests || null,

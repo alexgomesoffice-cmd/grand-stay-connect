@@ -273,6 +273,30 @@ const HotelDetail = () => {
   const [expandedRoomType, setExpandedRoomType] = useState<number | null>(null);
   const [variationImageIndices, setVariationImageIndices] = useState<Record<string, number>>({});
   const [selectedRoomCounts, setSelectedRoomCounts] = useState<Record<string, number>>({});
+  const [filterAC, setFilterAC] = useState<'all' | 'ac' | 'non-ac'>('all');
+
+  const filteredRooms = useMemo(() => {
+    if (filterAC === 'all') return hotel?.rooms || [];
+    return (hotel?.rooms || []).filter(room => {
+      if (!room.variations) return false;
+      if (filterAC === 'ac') {
+        // At least one variation has 'Air Conditioner' (not 'Non-Air Conditioner')
+        return room.variations.some(variation =>
+          variation.amenities?.some(amenity =>
+            amenity.trim().toLowerCase() === 'air conditioner'
+          )
+        );
+      } else if (filterAC === 'non-ac') {
+        // At least one variation has 'Non-Air Conditioner'
+        return room.variations.some(variation =>
+          variation.amenities?.some(amenity =>
+            amenity.trim().toLowerCase() === 'non-air conditioner'
+          )
+        );
+      }
+      return false;
+    });
+  }, [filterAC, hotel]);
 
   // Fetch hotel data from backend
   useEffect(() => {
@@ -517,6 +541,10 @@ const HotelDetail = () => {
     setShowBookingModal(true);
   };
 
+  const handleFilterChange = (filter: 'all' | 'ac' | 'non-ac') => {
+    setFilterAC(filter);
+  };
+
   // Gallery images from backend, with fallback to main hotel image
   const galleryImages = hotel.hotelImages && hotel.hotelImages.length > 0 
     ? hotel.hotelImages 
@@ -686,15 +714,38 @@ const HotelDetail = () => {
               <div className="animate-fade-in-up" style={{ animationDelay: "200ms" }}>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold">Available Rooms</h2>
-                  <span className="text-sm text-muted-foreground">{hotel.rooms.length} room type{hotel.rooms.length !== 1 ? "s" : ""}</span>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant={filterAC === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('all')}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      variant={filterAC === 'ac' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('ac')}
+                    >
+                      AC
+                    </Button>
+                    <Button
+                      variant={filterAC === 'non-ac' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('non-ac')}
+                    >
+                      Non-AC
+                    </Button>
+                  </div>
                 </div>
-                {hotel.rooms.length === 0 ? (
+
+                {filteredRooms.length === 0 ? (
                   <div className="p-6 rounded-xl bg-secondary/30 border border-border/50 text-center text-muted-foreground animate-fade-in">
-                    No room found for this hotel
+                    No room found for this filter
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    {hotel.rooms.map((room, index) => {
+                    {filteredRooms.map((room, index) => {
                       const isExpanded = expandedRoomType === room.id;
                       const availableVariations = room.variations?.filter(v => v.status === "AVAILABLE") || [];
 
@@ -839,7 +890,6 @@ const HotelDetail = () => {
                                                 alt={`${variation.bed_type} room`}
                                                 className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105"
                                               />
-                                              {/* Image counter */}
                                               {images.length > 1 && (
                                                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
                                                   {images.map((_, imgIdx) => (
@@ -860,7 +910,6 @@ const HotelDetail = () => {
                                                   ))}
                                                 </div>
                                               )}
-                                              {/* Nav arrows */}
                                               {images.length > 1 && (
                                                 <>
                                                   <button
@@ -877,7 +926,6 @@ const HotelDetail = () => {
                                                   </button>
                                                 </>
                                               )}
-                                              {/* Status badge */}
                                               {!isAvailable && (
                                                 <div className="absolute top-2 right-2 px-2 py-1 rounded-md bg-destructive/90 text-destructive-foreground text-xs font-medium backdrop-blur-sm">
                                                   {variation.status}
@@ -1145,30 +1193,7 @@ const HotelDetail = () => {
                     </div>
 
                     {/* Guests */}
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                        Guests
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setGuests(Math.max(1, guests - 1))}
-                          disabled={guests <= 1}
-                        >
-                          -
-                        </Button>
-                        <span className="flex-1 text-center font-semibold">{guests} guest{guests > 1 ? "s" : ""}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setGuests(Math.min(selectedRoom?.capacity || 10, guests + 1))}
-                          disabled={guests >= (selectedRoom?.capacity || 10)}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </div>
+                    {/* Guest counter removed as per request */}
 
                     {/* Selected Rooms Display */}
                     {Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length > 0 ? (
@@ -1204,7 +1229,7 @@ const HotelDetail = () => {
                       <div className="pt-4 border-t border-border space-y-2 animate-fade-in">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">
-                            {Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).map(([variationKey, count]) => {
+                            {Object.entries(selectedRoomCounts).filter(([variationKey, count]) => count > 0).map(([variationKey, count]) => {
                               let price = null;
                               hotel.rooms.forEach(room => {
                                 room.variations?.forEach(variation => {
@@ -1271,6 +1296,7 @@ const HotelDetail = () => {
           checkIn={checkIn}
           checkOut={checkOut}
           guests={guests}
+          room={hotel.rooms[0]} // Pass a default room to satisfy the type requirement
         />
       )}
     </div>
