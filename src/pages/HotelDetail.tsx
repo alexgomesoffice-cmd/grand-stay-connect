@@ -100,6 +100,11 @@ interface BackendRoomType {
     status: string;
     created_at: string;
     updated_at: string;
+    room_amenities?: Array<{
+      amenity: {
+        name: string;
+      };
+    }>;
   }>;
 }
 
@@ -309,12 +314,6 @@ const HotelDetail = () => {
               const coverRoomImg = roomImages.find(img => img.is_cover);
               const roomImageUrl = coverRoomImg?.image_url || (roomImages.length > 0 ? roomImages[0].image_url : null);
 
-              // Get room amenities from the room_amenities array - ONLY use room amenities
-              const roomAmenities = backendRoom.room_amenities?.map(ra => ra.amenity.name) || [];
-              
-              // Debug: log the amenities to see what we're getting
-              console.log(`Room "${backendRoom.room_type}" amenities:`, roomAmenities, "room_amenities object:", backendRoom.room_amenities);
-
               // Group physical rooms by their variation properties
               const variationGroups: { [key: string]: RoomVariation } = {};
               
@@ -333,7 +332,7 @@ const HotelDetail = () => {
                       available_count: 0,
                       room_details_ids: [],
                       images: roomImages.map(img => img.image_url), // Use room type images for variations
-                      amenities: roomAmenities, // Use room type amenities
+                      amenities: detail.room_amenities?.map(ra => ra.amenity.name) || [], // Get amenities from this physical room
                       price_modifier: 0, // Default, can be customized later
                       meal_plan: "Room only", // Default
                       refund_policy: "Non-refundable", // Default
@@ -347,6 +346,10 @@ const HotelDetail = () => {
                   if (detail.status === "AVAILABLE") {
                     variationGroups[variationKey].available_count++;
                   }
+
+                  // Merge amenities from this room (in case different rooms have different amenities)
+                  const roomAmenities = detail.room_amenities?.map(ra => ra.amenity.name) || [];
+                  variationGroups[variationKey].amenities = [...new Set([...variationGroups[variationKey].amenities, ...roomAmenities])];
                 });
               }
 
@@ -367,7 +370,7 @@ const HotelDetail = () => {
                 capacity,
                 beds,
                 size: roomSize,
-                amenities: roomAmenities, // Use ONLY room amenities, even if empty
+                amenities: firstVariation?.amenities || [], // Use amenities from the first variation
                 image: roomImageUrl,
                 variations: variations.length > 0 ? variations : undefined,
               };
