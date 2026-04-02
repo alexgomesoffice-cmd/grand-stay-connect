@@ -438,30 +438,29 @@ const HotelDetail = () => {
     return 1;
   }, [checkIn, checkOut]);
 
-  const totalPrice = useMemo(() => {
+  const calculateTotalPrice = useMemo(() => {
     let total = 0;
-    
-    // Calculate price for selected rooms across all variations
+
+    // Calculate total price for all selected room variations
     Object.entries(selectedRoomCounts).forEach(([variationKey, count]) => {
-      if (count > 0 && selectedRoom?.variations) {
-        // Find the variation that matches this key
-        const variation = selectedRoom.variations.find(v => 
-          `${v.bed_type}-${v.max_occupancy}-${v.smoking_allowed}-${v.pet_allowed}` === variationKey
-        );
-        if (variation) {
-          const variationPrice = selectedRoom.price + (variation.price_modifier || 0);
-          total += variationPrice * count;
-        }
+      if (count > 0) {
+        hotel?.rooms.forEach((room) => {
+          room.variations?.forEach((variation) => {
+            const key = `${variation.bed_type}-${variation.max_occupancy}-${variation.smoking_allowed}-${variation.pet_allowed}`;
+            if (key === variationKey) {
+              const variationPrice = room.price + (variation.price_modifier || 0);
+              total += variationPrice * count * nights;
+            }
+          });
+        });
       }
     });
-    
-    // If no rooms selected, use base room price
-    if (total === 0) {
-      total = (selectedRoom?.price || hotel?.price || 0);
-    }
-    
-    return total * nights;
-  }, [selectedRoom, selectedRoomCounts, hotel, nights]);
+
+    return total;
+  }, [selectedRoomCounts, hotel, nights]);
+
+  const serviceFee = useMemo(() => Math.round(calculateTotalPrice * 0.12), [calculateTotalPrice]);
+  const grandTotal = useMemo(() => calculateTotalPrice + serviceFee, [calculateTotalPrice, serviceFee]);
 
   if (loading) {
     return (
@@ -495,19 +494,19 @@ const HotelDetail = () => {
   }
 
   const handleBookNow = () => {
-    if (!selectedRoom) {
-      console.log("[HOTEL DETAIL] No room selected");
-      return; // Don't open modal without a room selected
+    const selectedVariations = Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0);
+    if (selectedVariations.length === 0) {
+      console.log("[HOTEL DETAIL] No rooms selected");
+      return;
     }
 
     // Check if user is logged in
     const user = getLoggedInUser();
     console.log("[HOTEL DETAIL] User check:", user ? `Logged in as ${user.email}` : "Not logged in");
-    
+
     if (!user) {
       console.log("[HOTEL DETAIL] Redirecting to login with return URL");
-      // Redirect to login with return URL
-      const hotelId = hotel.id;
+      const hotelId = hotel?.id;
       localStorage.setItem("returnUrl", `/hotel/${hotelId}`);
       navigate("/login");
       return;
@@ -897,7 +896,7 @@ const HotelDetail = () => {
                                           {/* Info Column */}
                                           <div className="flex-1 space-y-3">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-sm font-semibold">{variation.bed_type} Bed</span>
+                                              <span className="text-sm font-semibold">{room.name} • {variation.bed_type} Bed</span>
                                               <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/60 text-muted-foreground">
                                                 {variation.available_count} available
                                               </span>
@@ -994,16 +993,6 @@ const HotelDetail = () => {
                                                     <span className="text-sm">+</span>
                                                   </Button>
                                                 </div>
-                                                <Button
-                                                  variant={selectedRoom?.id === room.id ? "hero" : "default"}
-                                                  size="sm"
-                                                  className="text-xs h-8 w-full"
-                                                  onClick={(e) => { e.stopPropagation(); setSelectedRoom(room); }}
-                                                >
-                                                  {selectedRoom?.id === room.id ? (
-                                                    <><Check className="w-3 h-3 mr-1" /> Selected</>
-                                                  ) : "Select"}
-                                                </Button>
                                               </>
                                             ) : (
                                               <span className="text-xs text-destructive font-medium">Unavailable</span>
@@ -1068,11 +1057,25 @@ const HotelDetail = () => {
                       <span>Book your stay</span>
                       <div>
                         <span className="text-2xl font-bold text-gradient">
-                          {selectedRoom?.price && selectedRoom.price > 0
-                            ? `$${selectedRoom.price}`
-                            : hotel.price > 0
-                              ? `$${hotel.price}`
-                              : "Price unavailable"}
+                          {/* Show min price of all selected variations, or hotel price */}
+                          {(() => {
+                            const selectedVariations = Object.entries(selectedRoomCounts)
+                              .filter(([_, count]) => count > 0);
+                            if (selectedVariations.length > 0 && hotel.rooms) {
+                              let minPrice = null;
+                              hotel.rooms.forEach(room => {
+                                room.variations?.forEach(variation => {
+                                  const key = `${variation.bed_type}-${variation.max_occupancy}-${variation.smoking_allowed}-${variation.pet_allowed}`;
+                                  if (selectedRoomCounts[key] > 0) {
+                                    const price = room.price + (variation.price_modifier || 0);
+                                    if (minPrice === null || price < minPrice) minPrice = price;
+                                  }
+                                });
+                              });
+                              return minPrice !== null ? `$${minPrice}` : `$${hotel.price}`;
+                            }
+                            return hotel.price > 0 ? `$${hotel.price}` : "Price unavailable";
+                          })()}
                         </span>
                         <span className="text-sm text-muted-foreground font-normal">/night</span>
                       </div>
@@ -1167,42 +1170,67 @@ const HotelDetail = () => {
                       </div>
                     </div>
 
-                    {/* Selected Room Display */}
-                    {selectedRoom && (
+                    {/* Selected Rooms Display */}
+                    {Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length > 0 ? (
                       <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 animate-fade-in">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm text-muted-foreground mb-1">Selected room</div>
-                            <div className="font-semibold">{selectedRoom.name}</div>
-                          </div>
-                          <Check className="w-5 h-5 text-accent" />
-                        </div>
+                        <div className="text-sm text-muted-foreground mb-1">Selected rooms</div>
+                        <ul className="text-sm">
+                          {hotel.rooms.map(room => (
+                            room.variations?.map(variation => {
+                              const key = `${variation.bed_type}-${variation.max_occupancy}-${variation.smoking_allowed}-${variation.pet_allowed}`;
+                              const count = selectedRoomCounts[key] || 0;
+                              if (count > 0) {
+                                return (
+                                  <li key={key} className="flex items-center gap-2">
+                                    <Check className="w-4 h-4 text-accent" />
+                                    <span>{room.name} • {variation.bed_type} Bed</span>
+                                    <span className="ml-2 text-xs text-muted-foreground">x{count}</span>
+                                  </li>
+                                );
+                              }
+                              return null;
+                            })
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 text-center animate-fade-in">
+                        <p className="text-sm text-accent font-medium">Please select a room to book</p>
                       </div>
                     )}
 
                     {/* Price Summary (only after a room is selected) */}
-                    {nights > 0 && selectedRoom && (
+                    {nights > 0 && Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length > 0 && (
                       <div className="pt-4 border-t border-border space-y-2 animate-fade-in">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">
-                            ${selectedRoom.price} × {nights} night{nights > 1 ? "s" : ""}
+                            {Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).map(([variationKey, count]) => {
+                              let price = null;
+                              hotel.rooms.forEach(room => {
+                                room.variations?.forEach(variation => {
+                                  const key = `${variation.bed_type}-${variation.max_occupancy}-${variation.smoking_allowed}-${variation.pet_allowed}`;
+                                  if (key === variationKey) {
+                                    price = room.price + (variation.price_modifier || 0);
+                                  }
+                                });
+                              });
+                              return price !== null ? (
+                                <span key={variationKey} className="block">
+                                  ${price} × {count} room{count > 1 ? "s" : ""}
+                                </span>
+                              ) : null;
+                            })}
                           </span>
-                          <span>${totalPrice}</span>
+                          <span>${grandTotal}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Service fee</span>
-                          <span>${Math.round(totalPrice * 0.12)}</span>
+                          <span>${serviceFee}</span>
                         </div>
                         <div className="flex justify-between font-semibold pt-2 border-t border-border">
                           <span>Total</span>
-                          <span className="text-gradient">${totalPrice + Math.round(totalPrice * 0.12)}</span>
+                          <span className="text-gradient">${grandTotal}</span>
                         </div>
-                      </div>
-                    )}
-
-                    {!selectedRoom && (
-                      <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 text-center animate-fade-in">
-                        <p className="text-sm text-accent font-medium">Please select a room to book</p>
                       </div>
                     )}
 
@@ -1211,10 +1239,12 @@ const HotelDetail = () => {
                       size="xl"
                       className="w-full group"
                       onClick={handleBookNow}
-                      disabled={!selectedRoom}
+                      disabled={Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length === 0}
                     >
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                      {selectedRoom ? `Reserve for $${totalPrice + Math.round(totalPrice * 0.12)}` : "Select a room to book"}
+                      {Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length > 0
+                        ? `Reserve for $${grandTotal}`
+                        : "Select a room to book"}
                     </Button>
 
                     <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
@@ -1237,7 +1267,7 @@ const HotelDetail = () => {
           isOpen={showBookingModal}
           onClose={() => setShowBookingModal(false)}
           hotel={hotel}
-          room={selectedRoom || hotel.rooms[0]}
+          selectedRoomCounts={selectedRoomCounts}
           checkIn={checkIn}
           checkOut={checkOut}
           guests={guests}
