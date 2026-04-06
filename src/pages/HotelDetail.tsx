@@ -261,7 +261,6 @@ const HotelDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [checkIn, setCheckIn] = useState<Date | undefined>(addDays(new Date(), 1));
   const [checkOut, setCheckOut] = useState<Date | undefined>(addDays(new Date(), 3));
   const [guests, setGuests] = useState(2);
@@ -434,8 +433,6 @@ const HotelDetail = () => {
             hotelImages: allImageUrls // Store all images
           };
 
-          // Clear any previously selected room when navigating between hotels.
-          setSelectedRoom(null);
           setHotel(transformedHotel);
         } else {
           // Fallback to dummy data when API returns unsuccessful response
@@ -664,7 +661,7 @@ const HotelDetail = () => {
               </div>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold text-gradient">${selectedRoom?.price || hotel.price}</span>
+              <span className="text-4xl font-bold text-gradient">${hotel.price}</span>
               <span className="text-muted-foreground">/night</span>
             </div>
           </div>
@@ -759,8 +756,7 @@ const HotelDetail = () => {
                           <Card
                             className={cn(
                               "border-border/50 transition-all duration-500 overflow-hidden cursor-pointer group",
-                              isExpanded ? "border-primary/60 shadow-lg shadow-primary/5" : "hover:border-primary/30 hover:shadow-md",
-                              selectedRoom?.id === room.id && "ring-2 ring-primary/20"
+                              isExpanded ? "border-primary/60 shadow-lg shadow-primary/5" : "hover:border-primary/30 hover:shadow-md"
                             )}
                             onClick={() => {
                               if (isExpanded) {
