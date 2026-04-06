@@ -239,42 +239,6 @@ const HotelFilterSidebar = ({
           )}
         </div>
 
-        {/* Hotel Amenities */}
-        <div className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
-          {renderSectionHeader("hotelAmenities", "Hotel Amenities")}
-          {expanded.hotelAmenities && (
-            <div className="space-y-2">
-              {(hotelAmenityOptions || []).map((a) => (
-                <label
-                  key={a}
-                  className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
-                >
-                  <Checkbox checked={selectedHotelAmenities.includes(a)} onCheckedChange={() => toggleHotelAmenity(a)} />
-                  {a}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Room Amenities */}
-        <div className="animate-fade-in-up" style={{ animationDelay: "330ms" }}>
-          {renderSectionHeader("roomAmenities", "Room Amenities")}
-          {expanded.roomAmenities && (
-            <div className="space-y-2">
-              {(roomAmenityOptions || []).map((a) => (
-                <label
-                  key={a}
-                  className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
-                >
-                  <Checkbox checked={selectedRoomAmenities.includes(a)} onCheckedChange={() => toggleRoomAmenity(a)} />
-                  {a}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Room Types */}
         <div className="animate-fade-in-up" style={{ animationDelay: "350ms" }}>
           {renderSectionHeader("roomTypes", "Room Types")}
@@ -324,6 +288,44 @@ const HotelFilterSidebar = ({
             </div>
           )}
         </div>
+
+        {/* Room Amenities */}
+        <div className="animate-fade-in-up" style={{ animationDelay: "330ms" }}>
+          {renderSectionHeader("roomAmenities", "Room Amenities")}
+          {expanded.roomAmenities && (
+            <div className="space-y-2">
+              {(roomAmenityOptions || []).map((a) => (
+                <label
+                  key={a}
+                  className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
+                >
+                  <Checkbox checked={selectedRoomAmenities.includes(a)} onCheckedChange={() => toggleRoomAmenity(a)} />
+                  {a}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Hotel Amenities */}
+        <div className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+          {renderSectionHeader("hotelAmenities", "Hotel Amenities")}
+          {expanded.hotelAmenities && (
+            <div className="space-y-2">
+              {(hotelAmenityOptions || []).map((a) => (
+                <label
+                  key={a}
+                  className="flex items-center gap-2 cursor-pointer text-sm hover:text-foreground transition-all duration-200 hover:translate-x-1"
+                >
+                  <Checkbox checked={selectedHotelAmenities.includes(a)} onCheckedChange={() => toggleHotelAmenity(a)} />
+                  {a}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        
 
         <Button
           className="w-full transition-transform duration-200 hover:scale-[1.02]"
