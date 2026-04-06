@@ -55,12 +55,11 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
 
   const handleLocationChange = async (value: string) => {
     setLocation(value);
-    if (value.length >= 2) {
+    if (value.length >= 1) {
       setIsLoadingSuggestions(true);
       try {
         const result = await fetchSearchSuggestions(value);
         setSuggestions(result);
-        setShowSuggestions(true);
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);
         setSuggestions({ hotels: [], cities: [] });
@@ -69,7 +68,6 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
       }
     } else {
       setSuggestions({ hotels: [], cities: [] });
-      setShowSuggestions(false);
     }
   };
 
@@ -79,25 +77,8 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
     } else {
       setLocation(suggestion.name);
     }
-    setShowSuggestions(false);
+    setSuggestions({ hotels: [], cities: [] });
   };
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        locationInputRef.current &&
-        !locationInputRef.current.contains(event.target as Node) &&
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -120,75 +101,85 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-[2fr_1.2fr_1.2fr_1.3fr_auto] gap-3 sm:gap-4">
           {/* Location */}
-          <div className="relative group">
+          <div className="relative group overflow-visible">
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block pl-1 group-focus-within:text-primary transition-colors">
               Location
             </label>
-            <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-all duration-300 group-focus-within:scale-110" />
-              <Input
-                ref={locationInputRef}
-                placeholder="Where are you going?"
-                value={location}
-                onChange={(e) => handleLocationChange(e.target.value)}
-                onFocus={() => {
-                  if (location.length >= 2 && (suggestions.hotels.length > 0 || suggestions.cities.length > 0)) {
-                    setShowSuggestions(true);
-                  }
-                }}
-                className="pl-12 bg-secondary/30 border-border/50 hover:border-primary/40 focus:border-primary transition-all duration-300 hover:bg-secondary/40"
-              />
-              {isLoadingSuggestions && (
-                <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+            <Popover>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-all duration-300 group-focus-within:scale-110" />
+                  <Input
+                    ref={locationInputRef}
+                    placeholder="Where are you going?"
+                    value={location}
+                    onChange={(e) => handleLocationChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setSuggestions({ hotels: [], cities: [] });
+                        handleSearch();
+                      }
+                    }}
+                    className="pl-12 bg-secondary/30 border-border/50 hover:border-primary/40 focus:border-primary transition-all duration-300 hover:bg-secondary/40"
+                  />
+                  {isLoadingSuggestions && (
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              </PopoverTrigger>
+
+              {(suggestions.hotels.length > 0 || suggestions.cities.length > 0) && (
+                <PopoverContent
+                  align="start"
+                  side="bottom"
+                  sideOffset={6}
+                  className="w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <div
+                    ref={suggestionsRef}
+                    className="bg-popover border border-border rounded-lg shadow-lg z-[9999] max-h-80 overflow-y-auto"
+                  >
+                    {suggestions.cities.length > 0 && (
+                      <div className="p-2">
+                        <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Locations</div>
+                        {suggestions.cities.map((city) => (
+                          <button
+                            key={`city-${city.id}`}
+                            onClick={() => handleSuggestionSelect(city)}
+                            className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors"
+                          >
+                            <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate">{city.name}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {suggestions.hotels.length > 0 && (
+                      <div className={`${suggestions.cities.length > 0 ? 'border-t border-border' : ''} p-2`}>
+                        <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Hotels</div>
+                        {suggestions.hotels.map((hotel) => (
+                          <button
+                            key={`hotel-${hotel.id}`}
+                            onClick={() => handleSuggestionSelect(hotel)}
+                            className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors"
+                          >
+                            <Hotel className="h-4 w-4 text-primary flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate">{hotel.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">{hotel.city}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
               )}
-            </div>
-
-            {/* Suggestions Dropdown */}
-            {showSuggestions && (suggestions.hotels.length > 0 || suggestions.cities.length > 0) && (
-              <div
-                ref={suggestionsRef}
-                className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
-              >
-                {/* Cities */}
-                {suggestions.cities.length > 0 && (
-                  <div className="p-2">
-                    <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Locations</div>
-                    {suggestions.cities.map((city) => (
-                      <button
-                        key={`city-${city.id}`}
-                        onClick={() => handleSuggestionSelect(city)}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors"
-                      >
-                        <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{city.name}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Hotels */}
-                {suggestions.hotels.length > 0 && (
-                  <div className={`${suggestions.cities.length > 0 ? 'border-t border-border' : ''} p-2`}>
-                    <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Hotels</div>
-                    {suggestions.hotels.map((hotel) => (
-                      <button
-                        key={`hotel-${hotel.id}`}
-                        onClick={() => handleSuggestionSelect(hotel)}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors"
-                      >
-                        <Hotel className="h-4 w-4 text-primary flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{hotel.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">{hotel.city}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            </Popover>
           </div>
 
           {/* Check-in */}
