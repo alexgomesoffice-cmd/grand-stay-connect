@@ -1194,9 +1194,6 @@ const HotelDetail = () => {
                       </Popover>
                     </div>
 
-                    {/* Guests */}
-                    {/* Guest counter removed as per request */}
-
                     {/* Selected Rooms Display */}
                     {Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length > 0 ? (
                       <div className="p-4 rounded-xl bg-secondary/30 border border-border/50 animate-fade-in">
