@@ -140,13 +140,18 @@ const SearchHotels = () => {
       .filter((n) => Number.isFinite(n));
   };
 
-  const extractAmenityNames = (hotel: PublicHotel): string[] => {
+  const extractHotelAmenityNames = (hotel: PublicHotel): string[] => {
     const names = new Set<string>();
     for (const hotelAmenity of hotel.hotel_amenities || []) {
       if (hotelAmenity?.amenity?.name) {
         names.add(hotelAmenity.amenity.name);
       }
     }
+    return Array.from(names);
+  };
+
+  const extractRoomAmenityNames = (hotel: PublicHotel): string[] => {
+    const names = new Set<string>();
     for (const room of hotel.hotel_rooms || []) {
       for (const detail of room.hotel_room_details || []) {
         for (const roomAmenity of detail.room_amenities || []) {
@@ -157,11 +162,16 @@ const SearchHotels = () => {
       }
     }
     return Array.from(names);
+  }; 
+
+  const extractAmenityNames = (hotel: PublicHotel): string[] => {
+    return Array.from(new Set([...extractHotelAmenityNames(hotel), ...extractRoomAmenityNames(hotel)]));
   };
 
   const filterOptions = useMemo(() => {
     const allHotelTypes = new Set<string>();
-    const allAmenities = new Set<string>();
+    const allHotelAmenities = new Set<string>();
+    const allRoomAmenities = new Set<string>();
     const allRoomTypes = new Set<string>();
     const allBedTypes = new Set<string>();
     const ratingThresholds = new Set<number>();
@@ -172,8 +182,11 @@ const SearchHotels = () => {
     for (const hotel of hotels) {
       if (hotel.hotel_type) allHotelTypes.add(hotel.hotel_type);
 
-      for (const amenityName of extractAmenityNames(hotel)) {
-        allAmenities.add(amenityName);
+      for (const hotelAmenityName of extractHotelAmenityNames(hotel)) {
+        allHotelAmenities.add(hotelAmenityName);
+      }
+      for (const roomAmenityName of extractRoomAmenityNames(hotel)) {
+        allRoomAmenities.add(roomAmenityName);
       }
 
       const prices = hotelRoomPrices(hotel);
@@ -205,7 +218,8 @@ const SearchHotels = () => {
       hotelTypeOptions: hotelTypeEnumValues.length
         ? [...hotelTypeEnumValues].sort((a, b) => a.localeCompare(b))
         : Array.from(allHotelTypes).sort((a, b) => a.localeCompare(b)),
-      amenityOptions: Array.from(allAmenities).sort((a, b) => a.localeCompare(b)),
+      hotelAmenityOptions: Array.from(allHotelAmenities).sort((a, b) => a.localeCompare(b)),
+      roomAmenityOptions: Array.from(allRoomAmenities).sort((a, b) => a.localeCompare(b)),
       roomTypeOptions: roomTypeEnumValues.length
         ? [...roomTypeEnumValues].sort((a, b) => a.localeCompare(b))
         : Array.from(allRoomTypes).sort((a, b) => a.localeCompare(b)),
@@ -220,7 +234,8 @@ const SearchHotels = () => {
 
     const [minPrice, maxPrice] = filters.priceRange;
     const selectedRatings = filters.selectedRatings;
-    const selectedAmenities = filters.selectedAmenities;
+    const selectedHotelAmenities = filters.selectedHotelAmenities;
+    const selectedRoomAmenities = filters.selectedRoomAmenities;
     const selectedHotelTypes = filters.selectedHotelTypes;
     const selectedRoomTypes = filters.selectedRoomTypes;
     const selectedBedTypes = filters.selectedBedTypes;
@@ -228,7 +243,8 @@ const SearchHotels = () => {
     const minSelectedRating = selectedRatings.length ? Math.min(...selectedRatings) : null;
 
     return list.filter((hotel) => {
-      const hotelAmenities = extractAmenityNames(hotel);
+      const hotelAmenities = extractHotelAmenityNames(hotel);
+      const roomAmenities = extractRoomAmenityNames(hotel);
       const prices = hotelRoomPrices(hotel);
 
       const hotelTypesMatch =
@@ -236,8 +252,10 @@ const SearchHotels = () => {
 
       const ratingMatch = minSelectedRating === null || parsedStarRating(hotel) >= minSelectedRating;
 
-      const amenitiesMatch =
-        !selectedAmenities.length || selectedAmenities.every((a) => hotelAmenities.includes(a));
+      const hotelAmenitiesMatch =
+        !selectedHotelAmenities.length || selectedHotelAmenities.every((a) => hotelAmenities.includes(a));
+      const roomAmenitiesMatch =
+        !selectedRoomAmenities.length || selectedRoomAmenities.every((a) => roomAmenities.includes(a));
 
       const roomTypesMatch =
         !selectedRoomTypes.length ||
@@ -257,7 +275,7 @@ const SearchHotels = () => {
       const priceFilterActive = Number.isFinite(minPrice) && Number.isFinite(maxPrice) && minPrice !== maxPrice;
       const finalPriceMatch = !priceFilterActive ? true : priceMatch;
 
-      return hotelTypesMatch && ratingMatch && amenitiesMatch && roomTypesMatch && bedTypesMatch && finalPriceMatch;
+      return hotelTypesMatch && ratingMatch && hotelAmenitiesMatch && roomAmenitiesMatch && roomTypesMatch && bedTypesMatch && finalPriceMatch;
     });
   };
 
@@ -292,7 +310,8 @@ const SearchHotels = () => {
               priceMax={filterOptions.priceMax}
               ratingOptions={filterOptions.ratingOptions}
               hotelTypeOptions={filterOptions.hotelTypeOptions}
-              amenityOptions={filterOptions.amenityOptions}
+              hotelAmenityOptions={filterOptions.hotelAmenityOptions}
+              roomAmenityOptions={filterOptions.roomAmenityOptions}
               roomTypeOptions={filterOptions.roomTypeOptions}
               bedTypeOptions={filterOptions.bedTypeOptions}
               initialSelectedHotelTypes={hotelTypesFromUrl}
