@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, MapPin, Calendar as CalendarIcon, Users, Minus, Plus } from "lucide-react";
+import { Search, MapPin, Calendar as CalendarIcon, Users, Minus, Plus, Hotel, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { fetchBedTypeOptions, fetchHotelTypeOptions, fetchRoomTypeOptions, type EnumOption } from "@/services/publicHotelApi";
+import { fetchBedTypeOptions, fetchHotelTypeOptions, fetchRoomTypeOptions, type EnumOption, fetchSearchSuggestions, type SearchSuggestion } from "@/services/publicHotelApi";
 
 const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
   const navigate = useNavigate();
@@ -26,6 +26,12 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
   const [selectedHotelTypes, setSelectedHotelTypes] = useState<string[]>([]);
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
   const [selectedBedTypes, setSelectedBedTypes] = useState<string[]>([]);
+
+  const [suggestions, setSuggestions] = useState<{ hotels: SearchSuggestion[]; cities: SearchSuggestion[] }>({ hotels: [], cities: [] });
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Fetch enum-like options for the dropdown filters.
@@ -47,6 +53,52 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
     run();
   }, []);
 
+  const handleLocationChange = async (value: string) => {
+    setLocation(value);
+    if (value.length >= 2) {
+      setIsLoadingSuggestions(true);
+      try {
+        const result = await fetchSearchSuggestions(value);
+        setSuggestions(result);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error("Failed to fetch suggestions:", error);
+        setSuggestions({ hotels: [], cities: [] });
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    } else {
+      setSuggestions({ hotels: [], cities: [] });
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
+    if (suggestion.type === 'hotel') {
+      setLocation(`${suggestion.name}, ${suggestion.city}`);
+    } else {
+      setLocation(suggestion.name);
+    }
+    setShowSuggestions(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        locationInputRef.current &&
+        !locationInputRef.current.contains(event.target as Node) &&
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (location) params.set("location", location);
@@ -63,7 +115,7 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: "400ms" }}>
-      <div className="glass rounded-2xl p-3 sm:p-4 shadow-2xl shadow-primary/10 transition-shadow duration-500 group/bar relative overflow-hidden">
+      <div className="glass rounded-2xl p-3 sm:p-4 shadow-2xl shadow-primary/10 transition-shadow duration-500 group/bar relative overflow-visible">
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-0 group-hover/bar:opacity-100 blur-xl transition-opacity duration-500 -z-10" />
 
         <div className="grid grid-cols-1 sm:grid-cols-[2fr_1.2fr_1.2fr_1.3fr_auto] gap-3 sm:gap-4">
@@ -75,12 +127,68 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-all duration-300 group-focus-within:scale-110" />
               <Input
+                ref={locationInputRef}
                 placeholder="Where are you going?"
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => handleLocationChange(e.target.value)}
+                onFocus={() => {
+                  if (location.length >= 2 && (suggestions.hotels.length > 0 || suggestions.cities.length > 0)) {
+                    setShowSuggestions(true);
+                  }
+                }}
                 className="pl-12 bg-secondary/30 border-border/50 hover:border-primary/40 focus:border-primary transition-all duration-300 hover:bg-secondary/40"
               />
+              {isLoadingSuggestions && (
+                <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
             </div>
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && (suggestions.hotels.length > 0 || suggestions.cities.length > 0) && (
+              <div
+                ref={suggestionsRef}
+                className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+              >
+                {/* Cities */}
+                {suggestions.cities.length > 0 && (
+                  <div className="p-2">
+                    <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Locations</div>
+                    {suggestions.cities.map((city) => (
+                      <button
+                        key={`city-${city.id}`}
+                        onClick={() => handleSuggestionSelect(city)}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors"
+                      >
+                        <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{city.name}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Hotels */}
+                {suggestions.hotels.length > 0 && (
+                  <div className={`${suggestions.cities.length > 0 ? 'border-t border-border' : ''} p-2`}>
+                    <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Hotels</div>
+                    {suggestions.hotels.map((hotel) => (
+                      <button
+                        key={`hotel-${hotel.id}`}
+                        onClick={() => handleSuggestionSelect(hotel)}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent rounded-md transition-colors"
+                      >
+                        <Hotel className="h-4 w-4 text-primary flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{hotel.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{hotel.city}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Check-in */}
