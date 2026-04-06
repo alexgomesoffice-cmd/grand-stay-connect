@@ -762,7 +762,15 @@ const HotelDetail = () => {
                               isExpanded ? "border-primary/60 shadow-lg shadow-primary/5" : "hover:border-primary/30 hover:shadow-md",
                               selectedRoom?.id === room.id && "ring-2 ring-primary/20"
                             )}
-                            onClick={() => setExpandedRoomType(isExpanded ? null : room.id)}
+                            onClick={() => {
+                              if (isExpanded) {
+                                setExpandedRoomType(null);
+                              } else {
+                                setExpandedRoomType(room.id);
+                                // Clear all room selections when expanding a different room type
+                                setSelectedRoomCounts({});
+                              }
+                            }}
                           >
                             <CardContent className="p-5">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1297,6 +1305,7 @@ const HotelDetail = () => {
           checkOut={checkOut}
           guests={guests}
           room={hotel.rooms[0]} // Pass a default room to satisfy the type requirement
+          grandTotal={grandTotal}
         />
       )}
     </div>

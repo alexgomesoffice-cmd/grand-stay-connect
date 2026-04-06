@@ -36,6 +36,7 @@ interface BookingConfirmationProps {
   checkOut: Date;
   guests: number;
   selectedRoomCounts: Record<string, number>; // Added selectedRoomCounts prop
+  grandTotal: number; // Added grandTotal prop
 }
 
 const BookingConfirmation = ({
@@ -47,6 +48,7 @@ const BookingConfirmation = ({
   checkOut,
   guests,
   selectedRoomCounts,
+  grandTotal,
 }: BookingConfirmationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -62,11 +64,6 @@ const BookingConfirmation = ({
   });
 
   const nights = differenceInDays(checkOut, checkIn);
-  const roomTotal = room.price * nights;
-  const cleaningFee = 45;
-  const serviceFee = Math.round(roomTotal * 0.12);
-  const taxes = Math.round(roomTotal * 0.1);
-  const grandTotal = roomTotal + cleaningFee + serviceFee + taxes;
 
   const handleConfirmBooking = async () => {
     setIsReserving(true);
@@ -118,6 +115,7 @@ const BookingConfirmation = ({
             },
           ],
           special_request: guestInfo.specialRequests || null,
+          total_price: grandTotal,
         }),
       });
 
@@ -429,20 +427,12 @@ const BookingConfirmation = ({
                 <div className="bg-secondary/20 rounded-xl p-4 space-y-3">
                   <h4 className="font-semibold mb-3">Price Details</h4>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">${room.price} × {nights} night{nights > 1 ? "s" : ""}</span>
-                    <span>${roomTotal}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Cleaning fee</span>
-                    <span>${cleaningFee}</span>
+                    <span className="text-muted-foreground">Room charges × {nights} night{nights > 1 ? "s" : ""}</span>
+                    <span>${(grandTotal / 1.12).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Service fee</span>
-                    <span>${serviceFee}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Taxes</span>
-                    <span>${taxes}</span>
+                    <span>${(grandTotal - (grandTotal / 1.12)).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-semibold pt-3 border-t border-border">
                     <span>Total</span>
