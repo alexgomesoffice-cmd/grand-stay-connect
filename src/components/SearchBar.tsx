@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -12,7 +12,8 @@ import { fetchBedTypeOptions, fetchHotelTypeOptions, fetchRoomTypeOptions, type 
 
 const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
   const navigate = useNavigate();
-  const [location, setLocation] = useState("");
+  const routerLocation = useLocation();
+  const [searchLocation, setSearchLocation] = useState("");
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
   const [guests, setGuests] = useState(1);
@@ -32,6 +33,27 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(routerLocation.search);
+    const queryLocation = params.get("location");
+    const queryCheckIn = params.get("check_in") || params.get("checkIn");
+    const queryCheckOut = params.get("check_out") || params.get("checkOut");
+    const queryGuests = Number(params.get("guests"));
+    const queryRooms = Number(params.get("rooms"));
+
+    if (queryLocation) setSearchLocation(queryLocation);
+    if (queryCheckIn) {
+      const parsedIn = new Date(queryCheckIn);
+      if (!Number.isNaN(parsedIn.valueOf())) setCheckIn(parsedIn);
+    }
+    if (queryCheckOut) {
+      const parsedOut = new Date(queryCheckOut);
+      if (!Number.isNaN(parsedOut.valueOf())) setCheckOut(parsedOut);
+    }
+    if (Number.isFinite(queryGuests) && queryGuests > 0) setGuests(queryGuests);
+    if (Number.isFinite(queryRooms) && queryRooms > 0) setRooms(queryRooms);
+  }, [location.search]);
 
   useEffect(() => {
     // Fetch enum-like options for the dropdown filters.
@@ -54,7 +76,7 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
   }, []);
 
   const handleLocationChange = async (value: string) => {
-    setLocation(value);
+    setSearchLocation(value);
     if (value.length >= 1) {
       setIsLoadingSuggestions(true);
       try {
@@ -73,16 +95,16 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
 
   const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
     if (suggestion.type === 'hotel') {
-      setLocation(`${suggestion.name}, ${suggestion.city}`);
+      setSearchLocation(`${suggestion.name}, ${suggestion.city}`);
     } else {
-      setLocation(suggestion.name);
+      setSearchLocation(suggestion.name);
     }
     setSuggestions({ hotels: [], cities: [] });
   };
 
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (location) params.set("location", location);
+    if (searchLocation) params.set("location", searchLocation);
     // Backend expects snake_case query params: check_in / check_out
     if (checkIn) params.set("check_in", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("check_out", format(checkOut, "yyyy-MM-dd"));
@@ -91,6 +113,16 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
     if (selectedHotelTypes.length) params.set("hotel_types", selectedHotelTypes.join(","));
     if (selectedRoomTypes.length) params.set("room_types", selectedRoomTypes.join(","));
     if (selectedBedTypes.length) params.set("bed_types", selectedBedTypes.join(","));
+
+    const searchState = {
+      location: searchLocation || undefined,
+      check_in: checkIn ? format(checkIn, "yyyy-MM-dd") : undefined,
+      check_out: checkOut ? format(checkOut, "yyyy-MM-dd") : undefined,
+      guests,
+      rooms,
+    };
+    localStorage.setItem("hotelSearchState", JSON.stringify(searchState));
+
     navigate(`/search?${params.toString()}`);
   };
 
@@ -110,7 +142,7 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
                   <Input
                     ref={locationInputRef}
                     placeholder="Where are you going?"
-                    value={location}
+                    value={searchLocation}
                     onChange={(e) => handleLocationChange(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {

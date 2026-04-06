@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { format, addDays, differenceInDays } from "date-fns";
 import { 
   Star, 
@@ -273,6 +273,11 @@ const HotelDetail = () => {
   const [variationImageIndices, setVariationImageIndices] = useState<Record<string, number>>({});
   const [selectedRoomCounts, setSelectedRoomCounts] = useState<Record<string, number>>({});
   const [filterAC, setFilterAC] = useState<'all' | 'ac' | 'non-ac'>('all');
+  const [initialQueryApplied, setInitialQueryApplied] = useState(false);
+  const [availabilityByRoomId, setAvailabilityByRoomId] = useState<Record<number, { available: number; reserved: number; booked: number; total_inventory: number; base_price: number }>>({});
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const location = useLocation();
 
   const filteredRooms = useMemo(() => {
     if (filterAC === 'all') return hotel?.rooms || [];
@@ -451,6 +456,135 @@ const HotelDetail = () => {
     fetchHotelData();
   }, [id]);
 
+  useEffect(() => {
+    if (initialQueryApplied) return;
+    const params = new URLSearchParams(location.search);
+    let checkInParam = params.get("check_in") || params.get("checkIn");
+    let checkOutParam = params.get("check_out") || params.get("checkOut");
+    const guestsParam = Number(params.get("guests"));
+    const roomsParam = Number(params.get("rooms"));
+
+    if (!checkInParam || !checkOutParam) {
+      const savedSearch = localStorage.getItem("hotelSearchState");
+      if (savedSearch) {
+        try {
+          const saved = JSON.parse(savedSearch);
+          checkInParam = checkInParam || saved.check_in;
+          checkOutParam = checkOutParam || saved.check_out;
+          if (!Number.isFinite(guestsParam) && Number.isFinite(saved.guests)) {
+            if (saved.guests > 0) setGuests(saved.guests);
+          }
+        } catch {
+          // ignore invalid saved state
+        }
+      }
+    }
+
+    if (checkInParam) {
+      const parsed = new Date(checkInParam);
+      if (!Number.isNaN(parsed.valueOf())) setCheckIn(parsed);
+    }
+    if (checkOutParam) {
+      const parsed = new Date(checkOutParam);
+      if (!Number.isNaN(parsed.valueOf())) setCheckOut(parsed);
+    }
+    if (Number.isFinite(guestsParam) && guestsParam > 0) setGuests(guestsParam);
+
+    setInitialQueryApplied(true);
+  }, [location.search, initialQueryApplied]);
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!hotel || !hotel.id || !checkIn || !checkOut) return;
+      setAvailabilityLoading(true);
+      setAvailabilityError(null);
+
+      try {
+        const response = await apiGet(
+          `/bookings/availability/${hotel.id}?check_in=${format(checkIn, 'yyyy-MM-dd')}&check_out=${format(checkOut, 'yyyy-MM-dd')}`
+        );
+
+        if (response.success && response.data?.rooms) {
+          const mapped: Record<number, { available: number; reserved: number; booked: number; total_inventory: number; base_price: number }> = {};
+          response.data.rooms.forEach((room: any) => {
+            mapped[room.hotel_room_id] = {
+              available: room.available,
+              reserved: room.reserved,
+              booked: room.booked,
+              total_inventory: room.total_inventory,
+              base_price: room.base_price,
+            };
+          });
+          setAvailabilityByRoomId(mapped);
+        } else {
+          setAvailabilityByRoomId({});
+          setAvailabilityError('Unable to load availability');
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch room availability:", error);
+        setAvailabilityByRoomId({});
+        setAvailabilityError(error?.message || "Availability lookup failed");
+      } finally {
+        setAvailabilityLoading(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [hotel, checkIn, checkOut]);
+
+  const buildVariationKey = (variation: RoomVariation) =>
+    `${variation.bed_type}-${variation.max_occupancy}-${variation.smoking_allowed}-${variation.pet_allowed}`;
+
+  const selectedRoomCountByRoomId = useMemo(() => {
+    if (!hotel) return {} as Record<number, number>;
+
+    const result: Record<number, number> = {};
+    Object.entries(selectedRoomCounts).forEach(([variationKey, count]) => {
+      if (count <= 0) return;
+      hotel.rooms.forEach((room) => {
+        room.variations?.forEach((variation) => {
+          if (buildVariationKey(variation) === variationKey) {
+            result[room.id] = (result[room.id] || 0) + count;
+          }
+        });
+      });
+    });
+    return result;
+  }, [selectedRoomCounts, hotel]);
+
+  const selectedVariationEntries = useMemo(() => {
+    if (!hotel) return [] as Array<{ variation: RoomVariation; count: number }>;
+
+    return Object.entries(selectedRoomCounts).flatMap(([variationKey, count]) => {
+      if (count <= 0) return [];
+
+      return hotel.rooms.flatMap((room) =>
+        room.variations?.filter((variation) => buildVariationKey(variation) === variationKey).map((variation) => ({ variation, count })) || []
+      );
+    });
+  }, [selectedRoomCounts, hotel]);
+
+  const selectedUnavailableRooms = useMemo(
+    () => {
+      if (!hotel) return false;
+
+      const hasStaticUnavailable = selectedVariationEntries.some(
+        ({ variation }) => variation.status !== "AVAILABLE" || variation.available_count <= 0
+      );
+      if (hasStaticUnavailable) return true;
+
+      return Object.entries(selectedRoomCountByRoomId).some(([roomIdStr, count]) => {
+        const roomId = Number(roomIdStr);
+        const availability = availabilityByRoomId[roomId];
+        if (availability) {
+          return count > availability.available;
+        }
+        return false;
+      });
+    },
+    [selectedVariationEntries, selectedRoomCountByRoomId, availabilityByRoomId, hotel]
+  );
+
   // Calculate pricing
   const nights = useMemo(() => {
     if (checkIn && checkOut) {
@@ -458,6 +592,14 @@ const HotelDetail = () => {
     }
     return 1;
   }, [checkIn, checkOut]);
+
+  const invalidDateRange = useMemo(
+    () => checkIn && checkOut ? checkOut <= checkIn : false,
+    [checkIn, checkOut]
+  );
+
+  const hasSelectedRooms = Object.entries(selectedRoomCounts).some(([, count]) => count > 0);
+  const canReserve = hasSelectedRooms && !selectedUnavailableRooms && !invalidDateRange && !!checkIn && !!checkOut;
 
   const calculateTotalPrice = useMemo(() => {
     let total = 0;
@@ -518,6 +660,16 @@ const HotelDetail = () => {
     const selectedVariations = Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0);
     if (selectedVariations.length === 0) {
       console.log("[HOTEL DETAIL] No rooms selected");
+      return;
+    }
+
+    if (invalidDateRange) {
+      console.log("[HOTEL DETAIL] Invalid date range");
+      return;
+    }
+
+    if (selectedUnavailableRooms) {
+      console.log("[HOTEL DETAIL] Selected room unavailable for selected dates");
       return;
     }
 
@@ -844,7 +996,11 @@ const HotelDetail = () => {
                                 const currentImgIdx = variationImageIndices[variationKey] || 0;
                                 const images = variation.images || [];
                                 const roomCount = selectedRoomCounts[variationKey] || 0;
-                                const isAvailable = variation.available_count > 0;
+                                const roomAvailability = availabilityByRoomId[room.id];
+                                const availableRooms = roomAvailability?.available ?? variation.available_count;
+                                const isAvailable = availableRooms > 0;
+                                const roomSelectedCount = selectedRoomCountByRoomId[room.id] || 0;
+                                const overSelectedCapacity = roomAvailability ? roomSelectedCount > availableRooms : false;
 
                                 const nextImage = (e: React.MouseEvent) => {
                                   e.stopPropagation();
@@ -865,9 +1021,10 @@ const HotelDetail = () => {
                                 };
 
                                 const updateRoomCount = (count: number) => {
+                                  const maxCount = roomAvailability ? Math.min(availableRooms, variation.available_count) : variation.available_count;
                                   setSelectedRoomCounts(prev => ({
                                     ...prev,
-                                    [variationKey]: Math.max(0, Math.min(variation.available_count, count))
+                                    [variationKey]: Math.max(0, Math.min(maxCount, count))
                                   }));
                                 };
 
@@ -882,6 +1039,18 @@ const HotelDetail = () => {
                                     style={{ animationDelay: `${vi * 60}ms` }}
                                   >
                                     <CardContent className="p-0">
+                                      {roomCount > 0 && (!isAvailable || overSelectedCapacity) && (
+                                        <div className="p-3 bg-destructive/10 border-b border-destructive/30 text-destructive text-sm font-medium">
+                                          {overSelectedCapacity
+                                            ? "Selected room quantity exceeds availability for the chosen dates."
+                                            : "This room isn’t available for the selected dates or has already been reserved."}
+                                        </div>
+                                      )}
+                                      {roomCount > 0 && invalidDateRange && (
+                                        <div className="p-3 bg-destructive/10 border-b border-destructive/30 text-destructive text-sm font-medium">
+                                          Please select a valid check-in and check-out range.
+                                        </div>
+                                      )}
                                       <div className="flex flex-col md:flex-row">
                                         {/* Image Slider - Left Side */}
                                         <div className="relative w-full md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden group/img bg-secondary/10">
@@ -1258,17 +1427,30 @@ const HotelDetail = () => {
                       </div>
                     )}
 
+                    {selectedUnavailableRooms && (
+                      <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive font-medium text-center">
+                        Some selected rooms aren’t available for the selected dates or have already been reserved.
+                      </div>
+                    )}
+                    {invalidDateRange && (
+                      <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive font-medium text-center">
+                        Please select a valid check-in and check-out range.
+                      </div>
+                    )}
+
                     <Button
                       variant="hero"
                       size="xl"
                       className="w-full group"
                       onClick={handleBookNow}
-                      disabled={Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length === 0}
+                      disabled={!canReserve}
                     >
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                      {Object.entries(selectedRoomCounts).filter(([_, count]) => count > 0).length > 0
-                        ? `Reserve for $${grandTotal}`
-                        : "Select a room to book"}
+                      {hasSelectedRooms ? (
+                        selectedUnavailableRooms ? "Selected room unavailable" : invalidDateRange ? "Select valid dates" : `Reserve for $${grandTotal}`
+                      ) : (
+                        "Select a room to book"
+                      )}
                     </Button>
 
                     <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">

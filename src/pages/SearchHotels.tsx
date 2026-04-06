@@ -336,10 +336,11 @@ const SearchHotels = () => {
                 {filteredHotels.map((hotel, index) => {
                   // Get cover image or fallback
                   const coverImg = hotel.hotel_images?.find(img => img.is_cover)?.image_url || hotel.hotel_images?.[0]?.image_url || "https://via.placeholder.com/400x300?text=No+Image";
+                  const preservedSearch = searchParams.toString();
                   return (
                     <div
                       key={hotel.hotel_id}
-                      onClick={() => navigate(`/hotel/${hotel.hotel_id}`)}
+                      onClick={() => navigate(`/hotel/${hotel.hotel_id}${preservedSearch ? `?${preservedSearch}` : ""}`)}
                       className={`group relative rounded-2xl overflow-hidden bg-card border border-border hover:border-primary/30 transition-all duration-500 cursor-pointer hover:scale-[1.02] hover:-translate-y-2 ${isLoaded ? "animate-fade-in-up" : "opacity-0"} ${view === "list" ? "flex flex-col sm:flex-row" : ""}`}
                       style={{ animationDelay: `${(index + 3) * 80}ms` }}
                     >
