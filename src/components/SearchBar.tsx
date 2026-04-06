@@ -19,6 +19,7 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
   const [guests, setGuests] = useState(1);
   const [rooms, setRooms] = useState(1);
   const [isGuestOpen, setIsGuestOpen] = useState(false);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   const [hotelTypeOptions, setHotelTypeOptions] = useState<EnumOption[]>([]);
   const [roomTypeOptions, setRoomTypeOptions] = useState<EnumOption[]>([]);
@@ -75,6 +76,18 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
     run();
   }, []);
 
+  useEffect(() => {
+    if (checkIn && checkOut) {
+      if (checkOut <= checkIn) {
+        setDateError("Check-out must be after the check-in date.");
+      } else {
+        setDateError(null);
+      }
+    } else {
+      setDateError(null);
+    }
+  }, [checkIn, checkOut]);
+
   const handleLocationChange = async (value: string) => {
     setSearchLocation(value);
     if (value.length >= 1) {
@@ -103,6 +116,11 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
   };
 
   const handleSearch = () => {
+    if (checkIn && checkOut && checkOut <= checkIn) {
+      setDateError("Check-out must be after the check-in date.");
+      return;
+    }
+
     const params = new URLSearchParams();
     if (searchLocation) params.set("location", searchLocation);
     // Backend expects snake_case query params: check_in / check_out
@@ -235,7 +253,7 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
                   mode="single"
                   selected={checkIn}
                   onSelect={setCheckIn}
-                  disabled={(date) => date < new Date()}
+                  disabled={(date) => (checkOut ? date >= checkOut : date < new Date())}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
@@ -266,7 +284,7 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
                   mode="single"
                   selected={checkOut}
                   onSelect={setCheckOut}
-                  disabled={(date) => date < (checkIn || new Date())}
+                  disabled={(date) => (checkIn ? date <= checkIn : date <= new Date())}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
@@ -356,6 +374,12 @@ const SearchBar = ({ showFilters = true }: { showFilters?: boolean }) => {
             </Button>
           </div>
         </div>
+
+        {dateError && (
+          <div className="mt-3 rounded-xl bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive font-medium text-center">
+            {dateError}
+          </div>
+        )}
 
         {/* Constant filter form (no dropdown) */}
         {showFilters && (

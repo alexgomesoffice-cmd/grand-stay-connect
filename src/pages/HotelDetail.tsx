@@ -496,6 +496,11 @@ const HotelDetail = () => {
   useEffect(() => {
     const fetchAvailability = async () => {
       if (!hotel || !hotel.id || !checkIn || !checkOut) return;
+      if (checkOut <= checkIn) {
+        setAvailabilityByRoomId({});
+        setAvailabilityError('Please select a valid check-in and check-out range.');
+        return;
+      }
       setAvailabilityLoading(true);
       setAvailabilityError(null);
 
