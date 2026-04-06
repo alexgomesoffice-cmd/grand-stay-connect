@@ -237,6 +237,7 @@ const AdminAddHotel = () => {
         zip_code: formData.zipCode,
         hotel_type: formData.hotel_type,
         email: formData.email,
+        star_rating: formData.star_rating ? Number(formData.star_rating) : undefined,
         emergency_contact1: formData.emergency_contact1,
         emergency_contact2: formData.emergency_contact2,
         owner_name: formData.owner_name,

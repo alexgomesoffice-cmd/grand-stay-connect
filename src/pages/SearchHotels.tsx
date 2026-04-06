@@ -140,6 +140,25 @@ const SearchHotels = () => {
       .filter((n) => Number.isFinite(n));
   };
 
+  const extractAmenityNames = (hotel: PublicHotel): string[] => {
+    const names = new Set<string>();
+    for (const hotelAmenity of hotel.hotel_amenities || []) {
+      if (hotelAmenity?.amenity?.name) {
+        names.add(hotelAmenity.amenity.name);
+      }
+    }
+    for (const room of hotel.hotel_rooms || []) {
+      for (const detail of room.hotel_room_details || []) {
+        for (const roomAmenity of detail.room_amenities || []) {
+          if (roomAmenity?.amenity?.name) {
+            names.add(roomAmenity.amenity.name);
+          }
+        }
+      }
+    }
+    return Array.from(names);
+  };
+
   const filterOptions = useMemo(() => {
     const allHotelTypes = new Set<string>();
     const allAmenities = new Set<string>();
@@ -153,8 +172,8 @@ const SearchHotels = () => {
     for (const hotel of hotels) {
       if (hotel.hotel_type) allHotelTypes.add(hotel.hotel_type);
 
-      for (const ha of hotel.hotel_amenities || []) {
-        if (ha?.amenity?.name) allAmenities.add(ha.amenity.name);
+      for (const amenityName of extractAmenityNames(hotel)) {
+        allAmenities.add(amenityName);
       }
 
       const prices = hotelRoomPrices(hotel);
@@ -209,7 +228,7 @@ const SearchHotels = () => {
     const minSelectedRating = selectedRatings.length ? Math.min(...selectedRatings) : null;
 
     return list.filter((hotel) => {
-      const hotelAmenities = (hotel.hotel_amenities || []).map((ha) => ha.amenity.name);
+      const hotelAmenities = extractAmenityNames(hotel);
       const prices = hotelRoomPrices(hotel);
 
       const hotelTypesMatch =

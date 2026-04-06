@@ -12,7 +12,10 @@ export interface PublicHotel {
   hotel_rooms?: {
     base_price: number | string;
     room_type?: string | null;
-    hotel_room_details?: Array<{ bed_type?: string | null }>;
+    hotel_room_details?: Array<{
+      bed_type?: string | null;
+      room_amenities?: { amenity: { name: string } }[];
+    }>;
   }[];
   // ...add more fields as needed for the card
 }
