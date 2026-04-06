@@ -767,8 +767,6 @@ const HotelDetail = () => {
                                 setExpandedRoomType(null);
                               } else {
                                 setExpandedRoomType(room.id);
-                                // Clear all room selections when expanding a different room type
-                                setSelectedRoomCounts({});
                               }
                             }}
                           >
